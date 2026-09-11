@@ -1,14 +1,16 @@
 {
   "version": "1.0",
-  "name": "sol_schema_default",
+  "timestamp": "2026-09-11T12:40:48.014Z",
+  "name": "sol_schema_2026-09-11",
   "fps": 30,
   "autoRand": true,
   "fxLevel": 0.25,
   "tracks": [
     {
+      "id": "track_1789130185891_1",
       "name": "Pista 1 - Sub Bass",
       "inputChannel": 0,
-      "soundSource": "synth:triangle",
+      "soundSource": "sf2:slapbass",
       "rootNote": "C",
       "rootOctave": 1,
       "scaleKey": "pentatonic_minor",
@@ -22,19 +24,20 @@
         "A#1",
         "C2"
       ],
-      "velocity": 110,
+      "velocity": 93,
       "velocityMode": "fixed",
       "velocityRange": [
         80,
         120
       ],
-      "duration": 350,
+      "duration": 580,
       "probability": 100,
       "gain": 0.9,
       "mute": false,
       "solo": false
     },
     {
+      "id": "track_1789130185891_2",
       "name": "Pista 2 - Bassline",
       "inputChannel": 2,
       "soundSource": "synth:saw",
@@ -64,6 +67,7 @@
       "solo": false
     },
     {
+      "id": "track_1789130185891_3",
       "name": "Pista 3 - Pluck Mid",
       "inputChannel": 6,
       "soundSource": "synth:pluck",
@@ -112,9 +116,10 @@
       "solo": false
     },
     {
+      "id": "track_1789130185891_4",
       "name": "Pista 4 - Arp High",
       "inputChannel": 12,
-      "soundSource": "synth:square",
+      "soundSource": "sf2:epiano",
       "rootNote": "C",
       "rootOctave": 4,
       "scaleKey": "pentatonic_minor",
@@ -146,9 +151,10 @@
       "solo": false
     },
     {
+      "id": "track_1789130185891_5",
       "name": "Pista 5 - Chime Top",
       "inputChannel": 18,
-      "soundSource": "synth:bell",
+      "soundSource": "sf2:strings",
       "rootNote": "C",
       "rootOctave": 5,
       "scaleKey": "chromatic",
