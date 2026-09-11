@@ -1,0 +1,297 @@
+/**
+ * RadarRenderer.js
+ * Renderizador Canvas 2D de alta performance reproduzindo com fidelidade a estética
+ * de radar fosforescente do Processing original (estilo sci-fi / osciloscópio / radar).
+ */
+
+export class RadarRenderer {
+  constructor(canvas, geometry, options = {}) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.geo = geometry;
+    this.options = {
+      showLeds: options.showLeds ?? true,
+      showHeader: options.showHeader ?? true,
+      logoUrl: options.logoUrl || 'assets/sol.png',
+      ...options
+    };
+
+    this.logo = new Image();
+    this.logoLoaded = false;
+    this.logo.onload = () => {
+      this.logoLoaded = true;
+    };
+    this.logo.src = this.options.logoUrl;
+
+    // Estados para efeitos visuais
+    this.lastTriggerStates = new Array(this.geo.rows).fill(false);
+  }
+
+  resize(width, height) {
+    this.canvas.width = width;
+    this.canvas.height = height;
+    // Margem vertical segura para o subtítulo no topo e a barra de LEDs embaixo não encavalarem
+    const targetDiam = Math.max(260, Math.min(width - 40, height - 125));
+    this.geo.updateMetrics(targetDiam);
+  }
+
+  /**
+   * Renderiza um frame completo
+   */
+  render(solCore) {
+    const { ctx, canvas, geo } = this;
+    const { width, height } = canvas;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    // 1. Fading background para efeito de persistência fosforescente do feixe
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+
+    // 2. Desenho das faixas circulares e fatias do Radar
+    this._drawRadarGrid(ctx, geo);
+
+    // 3. Desenho do miolo central com logo e autor
+    this._drawCenterLabel(ctx, geo);
+
+    // 4. Desenho das células ativas do Game of Life
+    this._drawActiveCells(ctx, geo, solCore.gol);
+
+    // 5. Desenho do feixe do scanner de radar
+    this._drawScanner(ctx, geo, solCore.frame);
+
+    // 6. Sinalização de Pause
+    if (solCore.onPause) {
+      this._drawPauseIndicator(ctx, geo);
+    }
+
+    ctx.restore();
+
+    // 7. Header informativo (se habilitado)
+    if (this.options.showHeader) {
+      this._drawHeader(ctx);
+    }
+
+    // 8. Painel inferior esquerdo de LEDs dos 24 canais
+    if (this.options.showLeds) {
+      this._drawChannelLeds(ctx, width, height, solCore.frame, solCore.currentTrackStates);
+    }
+  }
+
+  _drawRadarGrid(ctx, geo) {
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(0, 80, 80, 0.8)';
+
+    // Trilhas concêntricas
+    let currentTrack = geo.diam;
+    for (let x = 0; x <= geo.rows; x++) {
+      ctx.beginPath();
+      ctx.arc(0, 0, currentTrack / 2, 0, Math.PI * 2);
+      ctx.stroke();
+      currentTrack -= geo.dec;
+    }
+
+    // Fatias angulares (5 graus cada)
+    for (let a = 0; a < 360; a += geo.sliceAngle) {
+      const ar = (Math.PI / 180) * a;
+      const px0 = geo.innerRadius * Math.cos(ar);
+      const py0 = geo.innerRadius * Math.sin(ar);
+      const px1 = geo.outerRadius * Math.cos(ar);
+      const py1 = geo.outerRadius * Math.sin(ar);
+
+      ctx.beginPath();
+      ctx.moveTo(px0, py0);
+      ctx.lineTo(px1, py1);
+      ctx.stroke();
+    }
+  }
+
+  _drawCenterLabel(ctx, geo) {
+    const labelRadius = geo.label / 2;
+    // Fator de escala proporcional ao tamanho do radar (baseado no label original de 296px)
+    const scale = geo.label / 296;
+
+    // 1. Disco central
+    ctx.fillStyle = 'rgba(0, 100, 128, 0.9)';
+    ctx.beginPath();
+    ctx.arc(0, 0, labelRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Anéis escuros concêntricos proporcionais
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = Math.max(1, 3 * scale);
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(1, labelRadius - (4 * scale)), 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(1, labelRadius - (10 * scale)), 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 3. Recorte circular (clip) para manter tudo estritamente dentro do disco central
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(1, labelRadius - (2 * scale)), 0, Math.PI * 2);
+    ctx.clip();
+
+    // 4. Logo central exatamente centralizado no ponto (0, 0) - alinhando o 'O' de SOL no centro
+    if (this.logoLoaded) {
+      const imgW = geo.label * 0.78;
+      const imgH = imgW * (80 / 200); // Preserva o aspect ratio da imagem
+      ctx.drawImage(this.logo, -imgW / 2, -imgH / 2, imgW, imgH);
+    }
+
+    // 5. Texto do Autor ampliado e elevado mais próximo ao centro
+    const fontSize = Math.max(10, Math.round(17 * scale));
+    ctx.fillStyle = '#00ffff';
+    ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('By Sandro Benigno', 0, labelRadius * 0.44);
+
+    ctx.restore();
+
+    // 6. Miolo central preto exatamente no centro do 'O' do logo SOL
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(2, geo.dec / 2), 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  _drawActiveCells(ctx, geo, gol) {
+    for (let col = 0; col < gol.cols; col++) {
+      for (let row = 0; row < gol.rows; row++) {
+        if (gol.getCell(col, row) === 1) {
+          this._drawCell(ctx, geo, col, row);
+        }
+      }
+    }
+  }
+
+  _drawCell(ctx, geo, col, row) {
+    const pos = geo.polarGridToCartesian(col, row);
+    const cellSize = pos.cellSize;
+
+    // Célula externa fosforescente
+    ctx.fillStyle = 'rgba(0, 128, 0, 0.7)';
+    ctx.strokeStyle = 'rgba(0, 255, 0, 0.9)';
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, cellSize / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Brilho central estocástico (idêntico ao Processing original: cell/random(1,5))
+    const innerSparkle = cellSize / (1.5 + Math.random() * 2);
+    ctx.fillStyle = '#00ff00';
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, innerSparkle / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  _drawScanner(ctx, geo, frame) {
+    const isTick = frame % 5 === 0;
+    const scanner = geo.getScannerLine(frame);
+
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = isTick ? '#00ffff' : 'rgba(0, 128, 128, 0.8)';
+    ctx.beginPath();
+    ctx.moveTo(scanner.x0, scanner.y0);
+    ctx.lineTo(scanner.x1, scanner.y1);
+    ctx.stroke();
+
+    // Efeito sutil de gradiente de varredura
+    const rad = (frame + geo.sliceAngle / 2) * (Math.PI / 180);
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 255, 255, 0.05)';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, geo.outerRadius, rad - 0.2, rad);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  _drawPauseIndicator(ctx, geo) {
+    const scale = geo.label / 296;
+    const fontSize = Math.max(10, Math.round(18 * scale));
+    ctx.fillStyle = 'rgba(0, 200, 200, 0.9)';
+    ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('[ PAUSED ]', 0, (geo.label / 2) + (24 * scale));
+  }
+
+  _drawHeader(ctx) {
+    ctx.save();
+    ctx.translate(18, 16);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    ctx.fillStyle = 'rgba(0, 220, 240, 0.85)';
+    ctx.font = '11px "Courier New", monospace';
+    ctx.fillText("Controlador de Música Generativa baseado no Conway's Game of Life", 0, 0);
+
+    ctx.restore();
+  }
+
+  _drawChannelLeds(ctx, width, height, frame, trackStates) {
+    // Escala dinâmica dos 24 LEDs para caber com folga na parte inferior
+    const availableWidth = width - 40;
+    const spc = Math.min(20, Math.max(12, availableWidth / 25));
+    const icon = Math.min(16, spc * 0.8);
+    const startX = 20;
+    const startY = height - 20;
+
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+
+    ctx.fillStyle = '#00ffff';
+    ctx.font = 'bold 11px "Courier New", monospace';
+    ctx.fillText('CHANNELS OUT', startX, startY - 36);
+
+    ctx.font = '10px "Courier New", monospace';
+    ctx.fillText(`CH 0: ${frame}°`, startX, startY - 24);
+
+    const total = trackStates ? trackStates.length : 24;
+    for (let x = 0; x < total; x++) {
+      const posX = startX + x * spc;
+      const posY = startY;
+
+      // Número do canal
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#00ffff';
+      ctx.font = '9px "Courier New", monospace';
+      ctx.fillText((x + 1).toString(), posX, posY - 15);
+
+      const isActive = trackStates && trackStates[x];
+
+      if (isActive) {
+        ctx.fillStyle = '#00ff00';
+        ctx.beginPath();
+        ctx.arc(posX, posY, icon / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Glow
+        ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(posX, posY, icon / 2 + 2, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.strokeStyle = 'rgba(0, 200, 200, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(posX, posY, icon / 2, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+}

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound of Life (SOL) - Polar Generative Music</title>
+  <link rel="icon" type="image/png" href="public/assets/sol.png">
+  <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+
+  <!-- Top Header & Controles Globais -->
+  <header>
+    <div class="top-bar-row">
+      <div class="app-brand">
+        <h1>SOUND OF LIFE</h1>
+        <span class="badge">WEB MODULAR</span>
+      </div>
+      <div id="transportContainer"></div>
+    </div>
+    <div class="top-bar-row">
+      <div id="schemaContainer" style="width: 100%;"></div>
+    </div>
+  </header>
+
+  <!-- Corpo Principal -->
+  <main>
+    <!-- Coluna Esquerda: Radar SOL (Agnóstico a Som) -->
+    <section class="radar-panel">
+      <div class="radar-canvas-wrapper" id="radarContainer"></div>
+      <div class="radar-hints">
+        <span><kbd>Clique / Arraste</kbd> Desenhar Células</span>
+        <span><kbd>P</kbd> ou <kbd>Espaço</kbd> Pausar Regras</span>
+        <span><kbd>R</kbd> Randomizar</span>
+        <span><kbd>C</kbd> Limpar</span>
+        <span><kbd>I</kbd> Reiniciar</span>
+      </div>
+    </section>
+
+    <!-- Coluna Direita: Musical Surface (Gerenciador de Pistas) -->
+    <section class="tracks-panel" id="tracksContainer"></section>
+  </main>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
