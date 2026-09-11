@@ -30,8 +30,17 @@ export class SolCore {
 
     this.currentTrackStates = new Array(this.rows).fill(false);
 
+    // AutoRand por ângulo de scan (90 graus)
+    this.autoRand = options.autoRand ?? true;
+    this.autoRandAngle = options.autoRandAngle || 90;
+
     // Inicialização aleatória padrão
     this.init(true);
+  }
+
+  setAutoRand(enabled) {
+    this.autoRand = !!enabled;
+    this.broadcaster.emit('autorand_change', { enabled: this.autoRand });
   }
 
   init(randomize = true) {
@@ -91,6 +100,12 @@ export class SolCore {
    * Executa um passo do ciclo de varredura
    */
   tick() {
+    // 1. AutoRand a cada incremento de 90 graus de scan (0°, 90°, 180°, 270°)
+    if (this.autoRand && this.frame % this.autoRandAngle === 0) {
+      this.gol.randomize();
+      this.broadcaster.emit('autorand_trigger', { angle: this.frame });
+    }
+
     const isStepTick = this.frame % this.stepDegrees === 0;
 
     if (isStepTick) {
@@ -105,7 +120,7 @@ export class SolCore {
         }
       }
 
-      // 1. Emite evento de passo de radar com o estado dos 24 canais
+      // 2. Emite evento de passo de radar com o estado dos 24 canais
       this.broadcaster.broadcastRadarStep({
         angle: this.frame,
         sliceIndex: sliceIndex,
@@ -116,7 +131,7 @@ export class SolCore {
         timestamp: Date.now()
       });
 
-      // 2. Se não estiver pausado, calcula a próxima geração do Game of Life
+      // 3. Se não estiver pausado, calcula a próxima geração do Game of Life
       if (!this.onPause) {
         this.gol.step();
       }

@@ -30,6 +30,12 @@ export class TransportBar {
           <button id="btnRestart" class="btn btn-transport" title="Reiniciar do Início (I)">
             <span class="btn-icon">🔄</span> <span class="btn-text">Restart</span>
           </button>
+
+          <!-- Checker de AutoRand 90° -->
+          <label class="btn btn-autorand" title="AutoRand: Randomiza o tabuleiro automaticamente a cada incremento de 90° de varredura do radar (0°, 90°, 180°, 270°)">
+            <input type="checkbox" id="chkAutoRand" ${this.solCore.autoRand ? 'checked' : ''}>
+            <span>⚡ AutoRand (90°)</span>
+          </label>
         </div>
 
         <!-- Velocidade de Varredura / FPS -->
@@ -74,6 +80,7 @@ export class TransportBar {
     const btnRandomize = this.container.querySelector('#btnRandomize');
     const btnClear = this.container.querySelector('#btnClear');
     const btnRestart = this.container.querySelector('#btnRestart');
+    const chkAutoRand = this.container.querySelector('#chkAutoRand');
     const speedSlider = this.container.querySelector('#speedSlider');
     const speedDisplay = this.container.querySelector('#speedDisplay');
     const volumeSlider = this.container.querySelector('#volumeSlider');
@@ -101,6 +108,17 @@ export class TransportBar {
     btnRestart.addEventListener('click', () => {
       this.soundEngine.unlock();
       this.solCore.restart();
+    });
+
+    chkAutoRand.addEventListener('change', (e) => {
+      this.soundEngine.unlock();
+      this.solCore.setAutoRand(e.target.checked);
+    });
+
+    this.broadcaster.on('autorand_change', ({ enabled }) => {
+      if (chkAutoRand && chkAutoRand.checked !== enabled) {
+        chkAutoRand.checked = enabled;
+      }
     });
 
     speedSlider.addEventListener('input', (e) => {

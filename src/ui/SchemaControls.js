@@ -30,9 +30,6 @@ export class SchemaControls {
           </button>
           <input type="file" id="fileSchemaInput" accept=".json,.sol.json" style="display: none;">
           
-          <button id="btnSetDefault" class="btn btn-sm btn-accent" title="Definir este esquema como o padrão para abrir sempre ao iniciar">
-            ⭐ Definir como Padrão
-          </button>
           <button id="btnResetFactory" class="btn btn-sm btn-outline" title="Restaurar esquema padrão original de fábrica">
             🔄 Restaurar Fábrica
           </button>
@@ -53,7 +50,6 @@ export class SchemaControls {
     const btnSave = this.container.querySelector('#btnSaveSchema');
     const btnLoad = this.container.querySelector('#btnLoadSchema');
     const fileInput = this.container.querySelector('#fileSchemaInput');
-    const btnSetDefault = this.container.querySelector('#btnSetDefault');
     const btnResetFactory = this.container.querySelector('#btnResetFactory');
     const fileSf2 = this.container.querySelector('#fileSf2Input');
     const msgEl = this.container.querySelector('#schemaStatusMessage');
@@ -87,11 +83,6 @@ export class SchemaControls {
         }
       }
       fileInput.value = '';
-    });
-
-    btnSetDefault.addEventListener('click', () => {
-      SchemaManager.saveAsDefault(this.trackManager, this.solCore, this.soundEngine);
-      showMsg('Esquema atual gravado como padrão!');
     });
 
     btnResetFactory.addEventListener('click', () => {

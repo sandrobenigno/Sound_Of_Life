@@ -6,9 +6,10 @@
 
 export const FACTORY_DEFAULT_SCHEMA = {
   version: '1.0',
-  name: 'Esquema Padrão SOL',
-  bpm: 30,
-  fxLevel: 0.25, // 25% de Efeito Espaço (Delay / Reverb) padrão
+  name: 'sol_schema_default',
+  fps: 30,
+  autoRand: true, // AutoRand habilitado por padrão (a cada 90°)
+  fxLevel: 0.25,
   tracks: [
     {
       name: 'Pista 1 - Sub Bass',
@@ -19,6 +20,14 @@ export const FACTORY_DEFAULT_SCHEMA = {
       scaleKey: 'pentatonic_minor',
       octavesCount: 1,
       advanceMode: 'sequential_forward',
+      notes: [
+        'C1',
+        'D#1',
+        'F1',
+        'G1',
+        'A#1',
+        'C2'
+      ],
       velocity: 110,
       velocityMode: 'fixed',
       velocityRange: [80, 120],
@@ -37,6 +46,14 @@ export const FACTORY_DEFAULT_SCHEMA = {
       scaleKey: 'pentatonic_minor',
       octavesCount: 1,
       advanceMode: 'sequential_forward',
+      notes: [
+        'C2',
+        'D#2',
+        'F2',
+        'G2',
+        'A#2',
+        'C3'
+      ],
       velocity: 95,
       velocityMode: 'fixed',
       velocityRange: [70, 110],
@@ -52,9 +69,36 @@ export const FACTORY_DEFAULT_SCHEMA = {
       soundSource: 'synth:pluck',
       rootNote: 'C',
       rootOctave: 3,
-      scaleKey: 'pentatonic_minor',
+      scaleKey: 'chromatic',
       octavesCount: 2,
       advanceMode: 'pendulum',
+      notes: [
+        'C3',
+        'C#3',
+        'D3',
+        'D#3',
+        'E3',
+        'F3',
+        'F#3',
+        'G3',
+        'G#3',
+        'A3',
+        'A#3',
+        'B3',
+        'C4',
+        'C#4',
+        'D4',
+        'D#4',
+        'E4',
+        'F4',
+        'F#4',
+        'G4',
+        'G#4',
+        'A4',
+        'A#4',
+        'B4',
+        'C5'
+      ],
       velocity: 85,
       velocityMode: 'random_range',
       velocityRange: [65, 105],
@@ -73,6 +117,19 @@ export const FACTORY_DEFAULT_SCHEMA = {
       scaleKey: 'pentatonic_minor',
       octavesCount: 2,
       advanceMode: 'random',
+      notes: [
+        'C4',
+        'D#4',
+        'F4',
+        'G4',
+        'A#4',
+        'C5',
+        'D#5',
+        'F5',
+        'G5',
+        'A#5',
+        'C6'
+      ],
       velocity: 80,
       velocityMode: 'random_range',
       velocityRange: [60, 100],
@@ -88,9 +145,24 @@ export const FACTORY_DEFAULT_SCHEMA = {
       soundSource: 'synth:bell',
       rootNote: 'C',
       rootOctave: 5,
-      scaleKey: 'pentatonic_minor',
+      scaleKey: 'chromatic',
       octavesCount: 1,
       advanceMode: 'sequential_forward',
+      notes: [
+        'C5',
+        'C#5',
+        'D5',
+        'D#5',
+        'E5',
+        'F5',
+        'F#5',
+        'G5',
+        'G#5',
+        'A5',
+        'A#5',
+        'B5',
+        'C6'
+      ],
       velocity: 90,
       velocityMode: 'fixed',
       velocityRange: [70, 110],
@@ -115,6 +187,7 @@ export class SchemaManager {
       timestamp: new Date().toISOString(),
       name: filename.replace('.sol.json', '').replace('.json', ''),
       fps: solCore ? solCore.targetFps : 30,
+      autoRand: solCore ? solCore.autoRand : true,
       fxLevel: soundEngine ? soundEngine.getFxLevel() : 0.25,
       tracks: trackManager.toJSON()
     };
@@ -160,8 +233,13 @@ export class SchemaManager {
       throw new Error('Formato de esquema inválido.');
     }
 
-    if (solCore && schema.fps) {
-      solCore.setFps(schema.fps);
+    if (solCore) {
+      if (schema.fps) {
+        solCore.setFps(schema.fps);
+      }
+      if (schema.autoRand !== undefined) {
+        solCore.setAutoRand(schema.autoRand);
+      }
     }
 
     if (soundEngine) {
@@ -189,21 +267,9 @@ export class SchemaManager {
   }
 
   /**
-   * Carrega o esquema padrão (do localStorage ou de fábrica)
+   * Carrega o esquema padrão oficial de fábrica
    */
   static loadDefault(trackManager, solCore, soundEngine = null) {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const schema = JSON.parse(saved);
-        this.applySchema(schema, trackManager, solCore, soundEngine);
-        return schema;
-      }
-    } catch (e) {
-      console.warn('Erro ao carregar esquema salvo, usando padrão de fábrica:', e);
-    }
-
-    // Fallback: Factory Default
     this.applySchema(FACTORY_DEFAULT_SCHEMA, trackManager, solCore, soundEngine);
     return FACTORY_DEFAULT_SCHEMA;
   }
@@ -212,7 +278,6 @@ export class SchemaManager {
    * Restaura o esquema original de fábrica
    */
   static resetToFactory(trackManager, solCore, soundEngine = null) {
-    localStorage.removeItem(STORAGE_KEY);
     this.applySchema(FACTORY_DEFAULT_SCHEMA, trackManager, solCore, soundEngine);
   }
 }
