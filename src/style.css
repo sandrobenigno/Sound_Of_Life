@@ -33,6 +33,7 @@ body {
   font-size: 13px;
   line-height: 1.4;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -56,6 +57,31 @@ header {
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-menu-toggle {
+  display: none;
+  background: var(--bg-input);
+  border: 1px solid var(--border-cyan);
+  color: var(--color-cyan);
+  padding: 5px 9px;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-menu-toggle:hover, .btn-menu-toggle.active {
+  background: rgba(0, 255, 255, 0.2);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
 }
 
 .app-brand {
@@ -327,7 +353,11 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow: 0 0 6px var(--color-red);
 }
 
-/* Schema Bar */
+/* Schema Drawer & Bar */
+.schema-drawer {
+  width: 100%;
+}
+
 .schema-controls-panel {
   display: flex;
   align-items: center;
@@ -369,7 +399,7 @@ input[type="range"]::-webkit-slider-thumb {
 /* Main Layout Grid */
 main {
   display: grid;
-  grid-template-columns: minmax(520px, 42vw) 1fr;
+  grid-template-columns: minmax(500px, 42vw) 1fr;
   flex: 1;
   overflow: hidden;
   background: var(--bg-dark);
@@ -377,15 +407,7 @@ main {
 
 @media (min-width: 1600px) {
   main {
-    grid-template-columns: minmax(640px, 45vw) 1fr;
-  }
-}
-
-@media (max-width: 1100px) {
-  main {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(480px, 50vh) 1fr;
-    overflow-y: auto;
+    grid-template-columns: minmax(620px, 45vw) 1fr;
   }
 }
 
@@ -407,6 +429,7 @@ main {
   position: relative;
   padding: 8px;
   overflow: hidden;
+  touch-action: none;
 }
 
 .sol-radar-canvas {
@@ -418,8 +441,8 @@ main {
   max-height: 100%;
   display: block;
   cursor: crosshair;
+  touch-action: none;
 }
-
 
 .radar-hints {
   background: var(--bg-panel);
@@ -734,4 +757,349 @@ main {
 .btn-icon:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* ==========================================================================
+   RESPONSIVIDADE & MOBILE / PORTRAIT STYLES
+   ========================================================================== */
+
+/* Regras para Desktop (>= 900px) */
+@media (min-width: 900px) {
+  .schema-drawer {
+    display: block !important;
+    max-height: none !important;
+    opacity: 1 !important;
+  }
+  .btn-menu-toggle {
+    display: none !important;
+  }
+}
+
+/* Ajustes intermediários para Desktop Compacto / Telas Médias (900px a 1250px) */
+@media (min-width: 900px) and (max-width: 1250px) {
+  main {
+    grid-template-columns: minmax(460px, 45vw) 1fr;
+  }
+  .track-row {
+    gap: 8px;
+    padding: 6px 10px;
+  }
+  .track-name-input {
+    width: 95px;
+  }
+  .track-source-select {
+    width: 135px;
+  }
+  .track-scale-select {
+    width: 115px;
+  }
+  .track-channel-select {
+    width: 105px;
+  }
+}
+
+/* ==========================================================================
+   Mobile & Modo Portrait (< 900px)
+   ========================================================================== */
+@media (max-width: 899px) {
+  body {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    padding: 6px 10px;
+    gap: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  }
+
+  .top-bar-row {
+    gap: 8px;
+  }
+
+  .btn-menu-toggle {
+    display: inline-flex;
+  }
+
+  .app-brand h1 {
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
+  .app-brand .badge {
+    display: none;
+  }
+
+  .transport-container {
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .transport-group {
+    gap: 4px;
+  }
+
+  .btn-transport {
+    min-width: auto;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .btn-autorand, .btn-bridge {
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+
+  .speed-group label, .volume-group label, .fx-group label {
+    font-size: 9px;
+  }
+
+  .speed-group input[type="range"],
+  .volume-group input[type="range"],
+  .fx-group input[type="range"] {
+    width: 45px;
+  }
+
+  .bridge-status-dot {
+    font-size: 10px;
+  }
+
+  /* Gaveta Retrátil de Esquemas (Menu Hambúrguer) */
+  .schema-drawer {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    margin: 0;
+    transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.2s ease;
+  }
+
+  .schema-drawer.open {
+    max-height: 250px;
+    opacity: 1;
+    margin-top: 6px;
+    padding-bottom: 4px;
+  }
+
+  .schema-controls-panel {
+    background: rgba(8, 16, 26, 0.98);
+    border: 1px solid var(--border-cyan);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+    padding: 8px 10px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    border-radius: 4px;
+  }
+
+  .schema-buttons {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .schema-buttons .btn {
+    flex: 1 1 auto;
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  /* Layout Geral em Coluna Única */
+  main {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    flex: none;
+  }
+
+  /* Painel do Radar SOL */
+  .radar-panel {
+    border-right: none;
+    border-bottom: 2px solid var(--border-dim);
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+    background: #020508;
+    flex: none;
+  }
+
+  .radar-canvas-wrapper {
+    width: 100%;
+    max-width: 100vw;
+    height: min(88vw, 420px);
+    aspect-ratio: 1 / 1;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+  }
+
+  .sol-radar-canvas {
+    touch-action: none;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  /* Oculta atalhos de teclado para poupar espaço em telas móveis */
+  .radar-hints {
+    display: none !important;
+  }
+
+  /* Painel de Pistas Musical Surface */
+  .tracks-panel {
+    overflow: visible;
+    flex: 1;
+  }
+
+  .tracks-header {
+    padding: 8px 12px;
+  }
+
+  .channel-map-bar {
+    padding: 4px 10px;
+  }
+
+  .tracks-list {
+    overflow-y: visible;
+    padding: 8px 10px;
+    gap: 10px;
+  }
+
+  /* Formato Card Modular das Pistas */
+  .track-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: var(--bg-panel);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Linha 1 do Card: LED, Entrada, Nome, Mix e Ações */
+  .track-header-cell {
+    min-width: 24px;
+    gap: 2px;
+    order: 1;
+  }
+
+  .track-input-cell {
+    flex: 1;
+    min-width: 95px;
+    order: 2;
+  }
+
+  .track-input-cell .track-channel-select {
+    width: 100%;
+  }
+
+  .track-name-cell {
+    flex: 1.2;
+    min-width: 100px;
+    order: 3;
+  }
+
+  .track-name-cell .track-name-input {
+    width: 100%;
+  }
+
+  .track-mix-cell {
+    order: 4;
+  }
+
+  .track-actions-cell {
+    order: 5;
+  }
+
+  /* Linha 2 do Card: Timbre SF2 e Escala Musical */
+  .track-source-cell {
+    width: 100%;
+    order: 6;
+  }
+
+  .track-source-cell .track-source-select {
+    width: 100%;
+  }
+
+  .track-scale-cell {
+    width: 100%;
+    order: 7;
+  }
+
+  .scale-inline-group {
+    display: flex;
+    width: 100%;
+    gap: 4px;
+  }
+
+  .track-root-select {
+    flex: 0 0 52px;
+  }
+
+  .track-oct-select {
+    flex: 0 0 62px;
+  }
+
+  .track-scale-select {
+    flex: 1;
+    width: auto !important;
+    min-width: 0;
+  }
+
+  /* Linha 3 do Card: Modo de Avanço e Sliders de Dinâmica */
+  .track-mode-cell {
+    flex: 1;
+    min-width: 95px;
+    order: 8;
+  }
+
+  .track-mode-cell .track-mode-select {
+    width: 100%;
+  }
+
+  .track-dynamics-cell {
+    flex: 1.4;
+    min-width: 150px;
+    order: 9;
+  }
+
+  .track-dynamics-cell .slider-group {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  .track-dynamics-cell .slider-group input[type="range"] {
+    width: 45px;
+    flex: 1;
+  }
+}
+
+/* Telas ultra compactas (< 420px) */
+@media (max-width: 420px) {
+  .track-actions-cell .btn-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 9px;
+  }
+  .track-mix-cell .btn-toggle {
+    width: 22px;
+    height: 22px;
+    font-size: 9px;
+  }
+  .track-input-cell, .track-name-cell {
+    min-width: 80px;
+  }
 }

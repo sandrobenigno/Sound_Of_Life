@@ -62,6 +62,16 @@ export class SchemaControls {
       }, 4000);
     };
 
+    const btnToggle = document.getElementById('btnMenuToggle');
+    const drawerEl = document.getElementById('schemaDrawer');
+
+    if (btnToggle && drawerEl) {
+      btnToggle.addEventListener('click', () => {
+        const isOpen = drawerEl.classList.toggle('open');
+        btnToggle.classList.toggle('active', isOpen);
+      });
+    }
+
     btnSave.addEventListener('click', () => {
       const defaultName = `sol_schema_${new Date().toISOString().slice(0, 10)}.sol.json`;
       SchemaManager.exportToFile(this.trackManager, this.solCore, this.soundEngine, defaultName);

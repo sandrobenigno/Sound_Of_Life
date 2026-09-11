@@ -40,10 +40,11 @@ export class RadarCanvas {
   _bindEvents() {
     window.addEventListener('resize', () => this.handleResize());
 
-    // Interação com Mouse / Pointer
+    // Interação com Mouse / Pointer / Touch
     this.canvas.addEventListener('pointerdown', (e) => this._onPointerDown(e));
     window.addEventListener('pointermove', (e) => this._onPointerMove(e));
-    window.addEventListener('pointerup', () => this._onPointerUp());
+    window.addEventListener('pointerup', (e) => this._onPointerUp(e));
+    window.addEventListener('pointercancel', (e) => this._onPointerUp(e));
 
     // Atalhos de teclado
     window.addEventListener('keydown', (e) => {
@@ -77,8 +78,12 @@ export class RadarCanvas {
   }
 
   _onPointerDown(e) {
-    if (e.button !== 0) return; // Apenas botão esquerdo
+    if (e.pointerType === 'mouse' && e.button !== 0) return; // Apenas botão principal no mouse
     this.isMouseDown = true;
+    try {
+      this.canvas.setPointerCapture(e.pointerId);
+    } catch (_) {}
+
     const pos = this._getCanvasCoordinates(e);
     const hit = this.solCore.geo.screenToPolarGrid(
       pos.x,
@@ -113,9 +118,14 @@ export class RadarCanvas {
     }
   }
 
-  _onPointerUp() {
+  _onPointerUp(e) {
     this.isMouseDown = false;
     this.lastPaintedCell = { col: -1, row: -1 };
+    if (e && e.pointerId) {
+      try {
+        this.canvas.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+    }
   }
 
   render() {

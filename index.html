@@ -12,14 +12,19 @@
   <!-- Top Header & Controles Globais -->
   <header>
     <div class="top-bar-row">
-      <div class="app-brand">
-        <h1>SOUND OF LIFE</h1>
-        <span class="badge">WEB MODULAR</span>
+      <div class="brand-group">
+        <button id="btnMenuToggle" class="btn btn-menu-toggle" title="Menu de Esquemas & Presets" aria-label="Menu de Esquemas">
+          <span class="menu-icon">☰</span>
+        </button>
+        <div class="app-brand">
+          <h1>SOUND OF LIFE</h1>
+          <span class="badge">WEB MODULAR</span>
+        </div>
       </div>
       <div id="transportContainer"></div>
     </div>
-    <div class="top-bar-row">
-      <div id="schemaContainer" style="width: 100%;"></div>
+    <div class="schema-drawer" id="schemaDrawer">
+      <div id="schemaContainer"></div>
     </div>
   </header>
 
