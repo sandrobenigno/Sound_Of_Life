@@ -16,8 +16,8 @@ export class TransportBar {
   _init() {
     this.container.innerHTML = `
       <div class="transport-container">
-        <!-- Controles Principais -->
-        <div class="transport-group">
+        <!-- Controles Principais de Transporte -->
+        <div class="transport-group action-group">
           <button id="btnPlayPause" class="btn btn-transport" title="Pausar/Retomar Regras (P / Espaço)">
             <span class="btn-icon">⏸</span> <span class="btn-text">Pausar</span>
           </button>
@@ -30,43 +30,45 @@ export class TransportBar {
           <button id="btnRestart" class="btn btn-transport" title="Reiniciar do Início (I)">
             <span class="btn-icon">🔄</span> <span class="btn-text">Restart</span>
           </button>
+        </div>
 
-          <!-- Checker de AutoRand 90° -->
+        <!-- Toggles: AutoRand & OSC Bridge -->
+        <div class="transport-group toggles-group">
           <label class="btn btn-autorand" title="AutoRand: Randomiza o tabuleiro automaticamente a cada incremento de 90° de varredura do radar (0°, 90°, 180°, 270°)">
             <input type="checkbox" id="chkAutoRand" ${this.solCore.autoRand ? 'checked' : ''}>
             <span>⚡ AutoRand (90°)</span>
           </label>
-        </div>
 
-        <!-- Velocidade de Varredura / FPS -->
-        <div class="transport-group speed-group">
-          <label for="speedSlider">VELOCIDADE:</label>
-          <input type="range" id="speedSlider" min="5" max="60" value="${this.solCore.targetFps}">
-          <span id="speedDisplay">${this.solCore.targetFps} FPS</span>
-        </div>
-
-        <!-- Volume Master -->
-        <div class="transport-group volume-group">
-          <label for="volumeSlider">MASTER VOL:</label>
-          <input type="range" id="volumeSlider" min="0" max="1.2" step="0.05" value="0.8">
-          <span id="volumeDisplay">80%</span>
-        </div>
-
-        <!-- Efeito Espaço (Delay / Reverb) -->
-        <div class="transport-group fx-group" title="Intensidade do efeito espacial de Stereo Ping-Pong Delay e Reverb">
-          <label for="fxSlider">ESPAÇO (FX):</label>
-          <input type="range" id="fxSlider" min="0" max="1" step="0.01" value="0.25">
-          <span id="fxDisplay">25%</span>
-        </div>
-
-        <!-- Status Bridge OSC & Áudio -->
-        <div class="transport-group status-group">
           <label class="btn btn-bridge" title="Conectar à ponte WebSocket local para envio de pacotes OSC UDP (PureData, Ableton, Max, etc.)">
             <input type="checkbox" id="chkBridgeOsc" ${this.broadcaster.wsEnabled ? 'checked' : ''}>
             <span>📡 OSC UDP</span>
           </label>
           <span id="oscStatusDot" class="bridge-status-dot" title="Status da Conexão da Ponte OSC">⚪ Off</span>
+        </div>
 
+        <!-- Sliders Globais -->
+        <div class="transport-group sliders-group">
+          <div class="slider-item speed-group">
+            <label for="speedSlider">FPS:</label>
+            <input type="range" id="speedSlider" min="5" max="60" value="${this.solCore.targetFps}">
+            <span id="speedDisplay">${this.solCore.targetFps}</span>
+          </div>
+
+          <div class="slider-item volume-group">
+            <label for="volumeSlider">VOL:</label>
+            <input type="range" id="volumeSlider" min="0" max="1.2" step="0.05" value="0.8">
+            <span id="volumeDisplay">80%</span>
+          </div>
+
+          <div class="slider-item fx-group" title="Intensidade do efeito espacial de Stereo Ping-Pong Delay e Reverb">
+            <label for="fxSlider">FX:</label>
+            <input type="range" id="fxSlider" min="0" max="1" step="0.01" value="0.25">
+            <span id="fxDisplay">25%</span>
+          </div>
+        </div>
+
+        <!-- Áudio Unlock -->
+        <div class="transport-group audio-group">
           <button id="btnAudioUnlock" class="btn btn-sm btn-audio" title="Status do Áudio do Navegador">
             🔊 Áudio Ativo
           </button>
