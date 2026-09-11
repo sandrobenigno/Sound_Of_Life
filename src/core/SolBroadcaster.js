@@ -7,12 +7,12 @@
 export class SolBroadcaster {
   constructor(options = {}) {
     this.wsUrl = options.wsUrl || 'ws://127.0.0.1:8765';
-    this.autoConnect = options.autoConnect ?? true;
+    this.wsEnabled = options.autoConnect ?? false;
     this.socket = null;
     this.isConnected = false;
     this.listeners = new Map(); // eventName -> Set of callbacks
 
-    if (this.autoConnect) {
+    if (this.wsEnabled) {
       this.connect();
     }
   }
@@ -43,11 +43,33 @@ export class SolBroadcaster {
     }
   }
 
+  /**
+   * Ativa ou desativa a conexão com a bridge WebSocket / OSC (Opt-in)
+   */
+  setBridgeEnabled(enabled, url = this.wsUrl) {
+    this.wsEnabled = !!enabled;
+    this.wsUrl = url;
+
+    if (!this.wsEnabled) {
+      if (this.socket) {
+        this.socket.close();
+        this.socket = null;
+      }
+      this.isConnected = false;
+      this.emit('ws_status', { status: 'disabled', connected: false, url: this.wsUrl });
+      return;
+    }
+
+    this.connect();
+  }
+
   connect(url = this.wsUrl) {
     this.wsUrl = url;
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
       return;
     }
+
+    this.emit('ws_status', { status: 'connecting', connected: false, url: this.wsUrl });
 
     try {
       this.socket = new WebSocket(this.wsUrl);
@@ -55,7 +77,7 @@ export class SolBroadcaster {
       this.socket.onopen = () => {
         this.isConnected = true;
         console.log(`[SOL WS] Conectado ao servidor WebSocket em ${this.wsUrl}`);
-        this.emit('ws_status', { connected: true, url: this.wsUrl });
+        this.emit('ws_status', { status: 'connected', connected: true, url: this.wsUrl });
       };
 
       this.socket.onclose = () => {
@@ -64,18 +86,24 @@ export class SolBroadcaster {
         if (wasConnected) {
           console.log('[SOL WS] Desconectado do servidor WebSocket.');
         }
-        this.emit('ws_status', { connected: false, url: this.wsUrl });
-        // Tentar reconectar periodicamente
-        setTimeout(() => {
-          if (!this.isConnected && this.autoConnect) {
-            this.connect();
-          }
-        }, 3000);
+        if (this.wsEnabled) {
+          this.emit('ws_status', { status: 'disconnected', connected: false, url: this.wsUrl });
+          // Tentar reconectar periodicamente apenas enquanto a bridge estiver habilitada
+          setTimeout(() => {
+            if (!this.isConnected && this.wsEnabled) {
+              this.connect();
+            }
+          }, 3000);
+        } else {
+          this.emit('ws_status', { status: 'disabled', connected: false, url: this.wsUrl });
+        }
       };
 
       this.socket.onerror = (err) => {
         this.isConnected = false;
-        this.emit('ws_status', { connected: false, error: err, url: this.wsUrl });
+        if (this.wsEnabled) {
+          this.emit('ws_status', { status: 'error', connected: false, error: err, url: this.wsUrl });
+        }
       };
 
       this.socket.onmessage = (event) => {
@@ -88,16 +116,14 @@ export class SolBroadcaster {
       };
     } catch (err) {
       this.isConnected = false;
-      this.emit('ws_status', { connected: false, error: err, url: this.wsUrl });
+      if (this.wsEnabled) {
+        this.emit('ws_status', { status: 'error', connected: false, error: err, url: this.wsUrl });
+      }
     }
   }
 
   disconnect() {
-    this.autoConnect = false;
-    if (this.socket) {
-      this.socket.close();
-      this.socket = null;
-    }
+    this.setBridgeEnabled(false);
   }
 
   /**

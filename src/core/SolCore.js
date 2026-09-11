@@ -26,7 +26,7 @@ export class SolCore {
 
     this.gol = new GameOfLife(this.cols, this.rows);
     this.geo = new PolarGeometry({ cols: this.cols, rows: this.rows, diam: options.diam || 750 });
-    this.broadcaster = new SolBroadcaster({ wsUrl: options.wsUrl, autoConnect: options.autoConnect ?? true });
+    this.broadcaster = new SolBroadcaster({ wsUrl: options.wsUrl, autoConnect: options.autoConnect ?? false });
 
     this.currentTrackStates = new Array(this.rows).fill(false);
 

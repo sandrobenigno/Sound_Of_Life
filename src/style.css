@@ -251,7 +251,53 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow: 0 0 6px rgba(0, 255, 255, 0.8);
 }
 
-/* Status Badges */
+/* Status Badges & Bridge Toggle */
+.btn-bridge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  color: var(--text-dim);
+  padding: 5px 9px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: bold;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.btn-bridge input[type="checkbox"] {
+  accent-color: var(--color-cyan);
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+.btn-bridge:hover {
+  background: rgba(0, 255, 255, 0.08);
+  color: var(--text-main);
+  border-color: var(--border-cyan);
+}
+
+.btn-bridge:has(input:checked) {
+  background: rgba(0, 255, 255, 0.15);
+  border-color: var(--color-cyan);
+  color: var(--color-cyan);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.25);
+}
+
+.bridge-status-dot {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  padding: 2px 4px;
+  user-select: none;
+  white-space: nowrap;
+}
+
 .status-badge {
   display: flex;
   align-items: center;

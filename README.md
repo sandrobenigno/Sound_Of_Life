@@ -183,7 +183,7 @@ Isso inicializa simultaneamente:
 ### Execução Apenas do Frontend Web:
 Se preferir usar seu próprio servidor estático (como VS Code Live Server ou `python -m http.server 8080`):
 - Abra o navegador em `http://localhost:8080`.
-- Se desejar comunicação OSC externa, execute em outro terminal `python bridge/sol_bridge.py`.
+- Se desejar comunicação OSC externa, execute em outro terminal `python bridge/sol_bridge.py` e marque o checkbox **`📡 OSC UDP`** na barra superior de transporte. Por padrão, a conexão externa fica desligada para não solicitar permissões de rede local desnecessárias.
 
 ---
 

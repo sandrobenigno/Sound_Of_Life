@@ -59,12 +59,14 @@ export class TransportBar {
           <span id="fxDisplay">25%</span>
         </div>
 
-        <!-- Status WebSocket & Áudio -->
+        <!-- Status Bridge OSC & Áudio -->
         <div class="transport-group status-group">
-          <div class="status-badge" id="wsStatusBadge" title="Status da Conexão WebSocket para Bridge OSC">
-            <span class="status-dot disconnected"></span>
-            <span class="status-text">WS Offline</span>
-          </div>
+          <label class="btn btn-bridge" title="Conectar à ponte WebSocket local para envio de pacotes OSC UDP (PureData, Ableton, Max, etc.)">
+            <input type="checkbox" id="chkBridgeOsc" ${this.broadcaster.wsEnabled ? 'checked' : ''}>
+            <span>📡 OSC UDP</span>
+          </label>
+          <span id="oscStatusDot" class="bridge-status-dot" title="Status da Conexão da Ponte OSC">⚪ Off</span>
+
           <button id="btnAudioUnlock" class="btn btn-sm btn-audio" title="Status do Áudio do Navegador">
             🔊 Áudio Ativo
           </button>
@@ -87,7 +89,8 @@ export class TransportBar {
     const volumeDisplay = this.container.querySelector('#volumeDisplay');
     const fxSlider = this.container.querySelector('#fxSlider');
     const fxDisplay = this.container.querySelector('#fxDisplay');
-    const wsStatusBadge = this.container.querySelector('#wsStatusBadge');
+    const chkBridgeOsc = this.container.querySelector('#chkBridgeOsc');
+    const oscStatusDot = this.container.querySelector('#oscStatusDot');
     const btnAudio = this.container.querySelector('#btnAudioUnlock');
 
     btnPlayPause.addEventListener('click', () => {
@@ -118,6 +121,33 @@ export class TransportBar {
     this.broadcaster.on('autorand_change', ({ enabled }) => {
       if (chkAutoRand && chkAutoRand.checked !== enabled) {
         chkAutoRand.checked = enabled;
+      }
+    });
+
+    // Controle da Bridge OSC via Checkbox
+    chkBridgeOsc.addEventListener('change', (e) => {
+      this.broadcaster.setBridgeEnabled(e.target.checked);
+    });
+
+    // Escuta status da conexão WebSocket / OSC
+    this.broadcaster.on('ws_status', ({ status, connected }) => {
+      if (status === 'connected' || connected) {
+        oscStatusDot.innerText = '🟢 Ativo';
+        oscStatusDot.style.color = '#00d26a';
+        if (!chkBridgeOsc.checked) chkBridgeOsc.checked = true;
+      } else if (status === 'connecting') {
+        oscStatusDot.innerText = '🟡 Conectando...';
+        oscStatusDot.style.color = '#e3b341';
+      } else if (status === 'disconnected') {
+        oscStatusDot.innerText = '🔴 Off';
+        oscStatusDot.style.color = '#f85149';
+      } else if (status === 'error') {
+        oscStatusDot.innerText = '🔴 Erro';
+        oscStatusDot.style.color = '#f85149';
+      } else {
+        oscStatusDot.innerText = '⚪ Off';
+        oscStatusDot.style.color = 'var(--text-dim)';
+        chkBridgeOsc.checked = false;
       }
     });
 
@@ -166,26 +196,6 @@ export class TransportBar {
     // Escuta mudanças de pause disparadas pelo teclado
     this.broadcaster.on('pause_toggle', ({ onPause }) => {
       this.updatePlayPauseState(onPause);
-    });
-
-    // Escuta status da conexão WebSocket
-    this.broadcaster.on('ws_status', ({ connected }) => {
-      const dot = wsStatusBadge.querySelector('.status-dot');
-      const text = wsStatusBadge.querySelector('.status-text');
-      if (connected) {
-        dot.className = 'status-dot connected';
-        text.textContent = 'WS Online';
-        wsStatusBadge.title = 'Conectado ao servidor WebSocket (Bridge OSC pronta)';
-      } else {
-        dot.className = 'status-dot disconnected';
-        text.textContent = 'WS Offline';
-        wsStatusBadge.title = 'Desconectado do WebSocket (execute: python bridge/server.py)';
-      }
-    });
-
-    // Clique no badge tenta reconectar
-    wsStatusBadge.addEventListener('click', () => {
-      this.broadcaster.connect();
     });
   }
 
