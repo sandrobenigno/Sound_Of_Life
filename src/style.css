@@ -689,6 +689,10 @@ main {
   gap: 4px;
 }
 
+.track-custom-notes-input {
+  width: 134px;
+}
+
 .track-scale-select {
   width: 140px;
 }
@@ -1191,6 +1195,11 @@ main {
 
   .track-oct-select {
     flex: 0 0 62px;
+  }
+
+  .track-custom-notes-input {
+    flex: 1.2;
+    min-width: 110px;
   }
 
   .track-scale-select {

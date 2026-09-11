@@ -146,12 +146,13 @@ export class TrackListView {
       <div class="track-cell track-scale-cell">
         <label class="cell-label">ESCALA / NOTAS</label>
         <div class="scale-inline-group">
-          <select class="input-select track-root-select" style="width: 58px;" title="Nota Fundamental">
+          <select class="input-select track-root-select" style="width: 58px; ${track.scaleKey === 'custom' ? 'display: none;' : ''}" title="Nota Fundamental">
             ${rootNoteOptions}
           </select>
-          <select class="input-select track-oct-select" style="width: 72px;" title="Oitava">
+          <select class="input-select track-oct-select" style="width: 72px; ${track.scaleKey === 'custom' ? 'display: none;' : ''}" title="Oitava">
             ${[1,2,3,4,5,6].map(oct => `<option value="${oct}" ${oct === track.rootOctave ? 'selected' : ''}>Oit ${oct}</option>`).join('')}
           </select>
+          <input type="text" class="input-text track-custom-notes-input" value="${track.getNotes().join(' ')}" placeholder="Ex: C3 D#3 F3 G3" title="Notas personalizadas (separadas por espaço ou vírgula)" style="${track.scaleKey === 'custom' ? '' : 'display: none;'}">
           <select class="input-select track-scale-select">
             ${scaleOptions}
           </select>
@@ -220,22 +221,60 @@ export class TrackListView {
       track.soundSource = e.target.value;
     });
 
+    // Escala e Notas
+    const rootSelect = row.querySelector('.track-root-select');
+    const octSelect = row.querySelector('.track-oct-select');
+    const scaleSelect = row.querySelector('.track-scale-select');
+    const customNotesInput = row.querySelector('.track-custom-notes-input');
+
     // Root Note
-    row.querySelector('.track-root-select').addEventListener('change', (e) => {
+    rootSelect.addEventListener('change', (e) => {
       track.rootNote = e.target.value;
       track.rebuildNotesFromScale();
     });
 
     // Root Octave
-    row.querySelector('.track-oct-select').addEventListener('change', (e) => {
+    octSelect.addEventListener('change', (e) => {
       track.rootOctave = parseInt(e.target.value, 10);
       track.rebuildNotesFromScale();
     });
 
     // Escala
-    row.querySelector('.track-scale-select').addEventListener('change', (e) => {
+    scaleSelect.addEventListener('change', (e) => {
+      const isCustom = e.target.value === 'custom';
       track.scaleKey = e.target.value;
-      track.rebuildNotesFromScale();
+
+      if (isCustom) {
+        rootSelect.style.display = 'none';
+        octSelect.style.display = 'none';
+        customNotesInput.style.display = '';
+        if (customNotesInput.value.trim()) {
+          track.setCustomNotes(customNotesInput.value);
+        } else {
+          customNotesInput.value = track.getNotes().join(' ');
+        }
+      } else {
+        rootSelect.style.display = '';
+        octSelect.style.display = '';
+        customNotesInput.style.display = 'none';
+        track.rebuildNotesFromScale();
+      }
+    });
+
+    // Custom Notes Input
+    const updateCustomNotes = (val) => {
+      if (track.scaleKey === 'custom' && val.trim()) {
+        track.setCustomNotes(val);
+      }
+    };
+
+    customNotesInput.addEventListener('input', (e) => {
+      updateCustomNotes(e.target.value);
+    });
+
+    customNotesInput.addEventListener('change', (e) => {
+      updateCustomNotes(e.target.value);
+      customNotesInput.value = track.getNotes().join(' ');
     });
 
     // Modo de Avanço

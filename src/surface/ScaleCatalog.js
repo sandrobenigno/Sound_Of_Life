@@ -90,15 +90,21 @@ export class ScaleCatalog {
   }
 
   static parseNoteList(input) {
-    if (Array.isArray(input)) {
-      return input.map(n => n.trim().toUpperCase()).filter(n => /^([A-G][#B]?)(-?\d+)$/.test(n));
+    const rawList = Array.isArray(input)
+      ? input
+      : (typeof input === 'string' ? input.trim().split(/[,\s]+/) : []);
+
+    const result = [];
+    for (const item of rawList) {
+      if (!item) continue;
+      const match = item.trim().match(/^([A-Ga-g][#b]?)(-?\d+)$/);
+      if (match) {
+        const midi = this.noteToMidi(item);
+        if (!isNaN(midi) && midi >= 0 && midi <= 127) {
+          result.push(this.midiToNote(midi));
+        }
+      }
     }
-    if (typeof input === 'string') {
-      return input
-        .split(/[,\s]+/)
-        .map(n => n.trim().toUpperCase())
-        .filter(n => /^([A-G][#B]?)(-?\d+)$/.test(n));
-    }
-    return [];
+    return result;
   }
 }
