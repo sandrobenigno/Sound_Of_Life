@@ -6,6 +6,8 @@
 > *Original: Desenvolvido em Processing (Sandro Benigno, Fevereiro/2021)*  
 > *Arquitetura Web Modular & Python Bridge (Sandro Benigno, Setembro/2026)*
 
+
+Experimente a [Versão Online](https://sandrobenigno.github.io/Sound_Of_Life/)
 ---
 
 ## 📖 1. Visão Geral do Projeto
