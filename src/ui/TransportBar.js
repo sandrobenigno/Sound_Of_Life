@@ -46,6 +46,13 @@ export class TransportBar {
           <span id="volumeDisplay">80%</span>
         </div>
 
+        <!-- Efeito Espaço (Delay / Reverb) -->
+        <div class="transport-group fx-group" title="Intensidade do efeito espacial de Stereo Ping-Pong Delay e Reverb">
+          <label for="fxSlider">ESPAÇO (FX):</label>
+          <input type="range" id="fxSlider" min="0" max="0.8" step="0.05" value="0.25">
+          <span id="fxDisplay">25%</span>
+        </div>
+
         <!-- Status WebSocket & Áudio -->
         <div class="transport-group status-group">
           <div class="status-badge" id="wsStatusBadge" title="Status da Conexão WebSocket para Bridge OSC">
@@ -71,6 +78,8 @@ export class TransportBar {
     const speedDisplay = this.container.querySelector('#speedDisplay');
     const volumeSlider = this.container.querySelector('#volumeSlider');
     const volumeDisplay = this.container.querySelector('#volumeDisplay');
+    const fxSlider = this.container.querySelector('#fxSlider');
+    const fxDisplay = this.container.querySelector('#fxDisplay');
     const wsStatusBadge = this.container.querySelector('#wsStatusBadge');
     const btnAudio = this.container.querySelector('#btnAudioUnlock');
 
@@ -105,6 +114,19 @@ export class TransportBar {
       this.soundEngine.setMasterVolume(val);
       volumeDisplay.textContent = `${Math.round(val * 100)}%`;
     });
+
+    fxSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      this.soundEngine.setFxLevel(val);
+      fxDisplay.textContent = `${Math.round((val / 0.8) * 100)}%`;
+    });
+
+    // Sincroniza o valor inicial do slider de FX
+    if (this.soundEngine) {
+      const initialFx = this.soundEngine.getFxLevel();
+      fxSlider.value = initialFx;
+      fxDisplay.textContent = `${Math.round((initialFx / 0.8) * 100)}%`;
+    }
 
     btnAudio.addEventListener('click', () => {
       this.soundEngine.unlock().then(() => {

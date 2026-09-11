@@ -8,6 +8,7 @@ export const FACTORY_DEFAULT_SCHEMA = {
   version: '1.0',
   name: 'Esquema Padrão SOL',
   bpm: 30,
+  fxLevel: 0.25, // 25% de Efeito Espaço (Delay / Reverb) padrão
   tracks: [
     {
       name: 'Pista 1 - Sub Bass',
@@ -108,12 +109,13 @@ export class SchemaManager {
   /**
    * Exporta a configuração atual para um arquivo .sol.json baixado no navegador
    */
-  static exportToFile(trackManager, solCore, filename = 'sound_of_life_schema.sol.json') {
+  static exportToFile(trackManager, solCore, soundEngine = null, filename = 'sound_of_life_schema.sol.json') {
     const schema = {
       version: '1.0',
       timestamp: new Date().toISOString(),
       name: filename.replace('.sol.json', '').replace('.json', ''),
       fps: solCore ? solCore.targetFps : 30,
+      fxLevel: soundEngine ? soundEngine.getFxLevel() : 0.25,
       tracks: trackManager.toJSON()
     };
 
@@ -133,13 +135,13 @@ export class SchemaManager {
   /**
    * Importa um arquivo JSON de esquema
    */
-  static async importFromFile(file, trackManager, solCore) {
+  static async importFromFile(file, trackManager, solCore, soundEngine = null) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const schema = JSON.parse(e.target.result);
-          this.applySchema(schema, trackManager, solCore);
+          this.applySchema(schema, trackManager, solCore, soundEngine);
           resolve(schema);
         } catch (err) {
           reject(new Error(`Arquivo JSON inválido: ${err.message}`));
@@ -151,9 +153,9 @@ export class SchemaManager {
   }
 
   /**
-   * Aplica um objeto de esquema ao TrackManager e ao SolCore
+   * Aplica um objeto de esquema ao TrackManager, SolCore e SoundEngine
    */
-  static applySchema(schema, trackManager, solCore) {
+  static applySchema(schema, trackManager, solCore, soundEngine = null) {
     if (!schema || !Array.isArray(schema.tracks)) {
       throw new Error('Formato de esquema inválido.');
     }
@@ -162,18 +164,23 @@ export class SchemaManager {
       solCore.setFps(schema.fps);
     }
 
+    if (soundEngine) {
+      soundEngine.setFxLevel(schema.fxLevel !== undefined ? schema.fxLevel : 0.25);
+    }
+
     trackManager.fromJSON(schema.tracks);
   }
 
   /**
    * Salva o esquema atual como Esquema Padrão no localStorage
    */
-  static saveAsDefault(trackManager, solCore) {
+  static saveAsDefault(trackManager, solCore, soundEngine = null) {
     const schema = {
       version: '1.0',
       timestamp: new Date().toISOString(),
       name: 'Esquema Padrão do Usuário',
       fps: solCore ? solCore.targetFps : 30,
+      fxLevel: soundEngine ? soundEngine.getFxLevel() : 0.25,
       tracks: trackManager.toJSON()
     };
 
@@ -184,12 +191,12 @@ export class SchemaManager {
   /**
    * Carrega o esquema padrão (do localStorage ou de fábrica)
    */
-  static loadDefault(trackManager, solCore) {
+  static loadDefault(trackManager, solCore, soundEngine = null) {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const schema = JSON.parse(saved);
-        this.applySchema(schema, trackManager, solCore);
+        this.applySchema(schema, trackManager, solCore, soundEngine);
         return schema;
       }
     } catch (e) {
@@ -197,15 +204,15 @@ export class SchemaManager {
     }
 
     // Fallback: Factory Default
-    this.applySchema(FACTORY_DEFAULT_SCHEMA, trackManager, solCore);
+    this.applySchema(FACTORY_DEFAULT_SCHEMA, trackManager, solCore, soundEngine);
     return FACTORY_DEFAULT_SCHEMA;
   }
 
   /**
    * Restaura o esquema original de fábrica
    */
-  static resetToFactory(trackManager, solCore) {
+  static resetToFactory(trackManager, solCore, soundEngine = null) {
     localStorage.removeItem(STORAGE_KEY);
-    this.applySchema(FACTORY_DEFAULT_SCHEMA, trackManager, solCore);
+    this.applySchema(FACTORY_DEFAULT_SCHEMA, trackManager, solCore, soundEngine);
   }
 }

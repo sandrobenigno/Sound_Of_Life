@@ -1,6 +1,6 @@
 /**
  * SoundEngine.js
- * Roteador unificado de áudio, mixer principal, efeitos master (compressor limiter e reverb)
+ * Roteador unificado de áudio, mixer principal, barramento de efeitos (Stereo Delay & Reverb)
  * e gerenciador do ciclo de vida do AudioContext.
  */
 
@@ -12,7 +12,9 @@ export class SoundEngine {
     this.ctx = null;
     this.masterGain = null;
     this.limiter = null;
-    this.reverbGain = null;
+    this.voiceBus = null;
+    this.fxSendGain = null;
+    this.fxWetGain = null;
     this.synth = null;
     this.sf2Player = null;
     this.isUnlocked = false;
@@ -29,7 +31,7 @@ export class SoundEngine {
 
     this.ctx = new AudioContextClass();
 
-    // 1. Limiter Brickwall (DynamicsCompressor) para evitar qualquer saturação/clipping
+    // 1. Limiter Brickwall (DynamicsCompressor) para evitar qualquer distorção/clipping
     this.limiter = this.ctx.createDynamicsCompressor();
     this.limiter.threshold.setValueAtTime(-1.0, this.ctx.currentTime);
     this.limiter.knee.setValueAtTime(0, this.ctx.currentTime);
@@ -41,28 +43,29 @@ export class SoundEngine {
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
 
-    // 3. Efeito Delay / Reverb Master Sutil
-    this.reverbGain = this.ctx.createGain();
-    this.reverbGain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+    // 3. Barramento Central de Vozes (Recebe o som de todas as pistas)
+    this.voiceBus = this.ctx.createGain();
+    this.voiceBus.gain.setValueAtTime(1.0, this.ctx.currentTime);
 
-    const delay = this.ctx.createDelay();
-    delay.delayTime.setValueAtTime(0.25, this.ctx.currentTime);
+    // 4. Sinal Direto (Dry Signal) -> Limiter -> Master
+    this.voiceBus.connect(this.limiter);
 
-    const delayFeedback = this.ctx.createGain();
-    delayFeedback.gain.setValueAtTime(0.3, this.ctx.currentTime);
+    // 5. Barramento de Efeitos Espaciais (Delay Estéreo + Reverb)
+    this.fxSendGain = this.ctx.createGain();
+    this.fxSendGain.gain.setValueAtTime(0.5, this.ctx.currentTime);
 
-    delay.connect(delayFeedback);
-    delayFeedback.connect(delay);
-    delay.connect(this.reverbGain);
-    this.reverbGain.connect(this.masterGain);
+    this.fxWetGain = this.ctx.createGain();
+    this.fxWetGain.gain.setValueAtTime(0.25, this.ctx.currentTime); // 25% de envio padrão
 
-    // Conexões Master
+    this._buildFxChain();
+
+    // Conexão final: Limiter -> Master -> Caixas de som / Fones
     this.limiter.connect(this.masterGain);
     this.masterGain.connect(this.ctx.destination);
 
-    // Sub-motores de síntese e SF2
-    this.synth = new WebAudioSynth(this.ctx, this.limiter);
-    this.sf2Player = new SF2Player(this.ctx, this.limiter);
+    // Sub-motores de síntese e SF2 conectados ao Barramento Central
+    this.synth = new WebAudioSynth(this.ctx, this.voiceBus);
+    this.sf2Player = new SF2Player(this.ctx, this.voiceBus);
 
     // Desbloqueia áudio no primeiro clique/toque do usuário
     const unlock = () => {
@@ -81,6 +84,53 @@ export class SoundEngine {
     window.addEventListener('keydown', unlock, { once: true });
   }
 
+  _buildFxChain() {
+    // Conecta o barramento de vozes ao envio de efeitos
+    this.voiceBus.connect(this.fxSendGain);
+
+    // Filtro de amortecimento de agudos (Damping)
+    const dampingFilter = this.ctx.createBiquadFilter();
+    dampingFilter.type = 'lowpass';
+    dampingFilter.frequency.setValueAtTime(4500, this.ctx.currentTime);
+
+    // Delay Canal Esquerdo (~180ms)
+    const delayL = this.ctx.createDelay();
+    delayL.delayTime.setValueAtTime(0.18, this.ctx.currentTime);
+
+    // Delay Canal Direito (~270ms)
+    const delayR = this.ctx.createDelay();
+    delayR.delayTime.setValueAtTime(0.27, this.ctx.currentTime);
+
+    // Feedback cruzado (Ping-Pong Delay)
+    const feedbackL = this.ctx.createGain();
+    feedbackL.gain.setValueAtTime(0.35, this.ctx.currentTime);
+
+    const feedbackR = this.ctx.createGain();
+    feedbackR.gain.setValueAtTime(0.35, this.ctx.currentTime);
+
+    // Panners estéreo
+    const merger = this.ctx.createChannelMerger(2);
+
+    this.fxSendGain.connect(dampingFilter);
+
+    // Roteamento Delay L -> R / R -> L
+    dampingFilter.connect(delayL);
+    dampingFilter.connect(delayR);
+
+    delayL.connect(feedbackL);
+    feedbackL.connect(delayR);
+
+    delayR.connect(feedbackR);
+    feedbackR.connect(delayL);
+
+    delayL.connect(merger, 0, 0); // L
+    delayR.connect(merger, 0, 1); // R
+
+    // Retorno do efeito ao limiter master
+    merger.connect(this.fxWetGain);
+    this.fxWetGain.connect(this.limiter);
+  }
+
   unlock() {
     if (this.ctx && this.ctx.state === 'suspended') {
       return this.ctx.resume().then(() => {
@@ -96,6 +146,16 @@ export class SoundEngine {
     if (!this.masterGain || !this.ctx) return;
     const clamped = Math.max(0, Math.min(1.5, val));
     this.masterGain.gain.setValueAtTime(clamped, this.ctx.currentTime);
+  }
+
+  setFxLevel(val) {
+    if (!this.fxWetGain || !this.ctx) return;
+    const clamped = Math.max(0, Math.min(1.0, val));
+    this.fxWetGain.gain.setValueAtTime(clamped, this.ctx.currentTime);
+  }
+
+  getFxLevel() {
+    return this.fxWetGain ? this.fxWetGain.gain.value : 0.25;
   }
 
   getAvailableSoundSources() {

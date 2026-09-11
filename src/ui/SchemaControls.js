@@ -68,7 +68,7 @@ export class SchemaControls {
 
     btnSave.addEventListener('click', () => {
       const defaultName = `sol_schema_${new Date().toISOString().slice(0, 10)}.sol.json`;
-      SchemaManager.exportToFile(this.trackManager, this.solCore, defaultName);
+      SchemaManager.exportToFile(this.trackManager, this.solCore, this.soundEngine, defaultName);
       showMsg('Esquema salvo e download iniciado com sucesso!');
     });
 
@@ -80,7 +80,7 @@ export class SchemaControls {
       const file = e.target.files[0];
       if (file) {
         try {
-          await SchemaManager.importFromFile(file, this.trackManager, this.solCore);
+          await SchemaManager.importFromFile(file, this.trackManager, this.solCore, this.soundEngine);
           showMsg(`Esquema "${file.name}" carregado com sucesso!`);
         } catch (err) {
           showMsg(`Erro ao carregar: ${err.message}`, true);
@@ -90,13 +90,13 @@ export class SchemaControls {
     });
 
     btnSetDefault.addEventListener('click', () => {
-      SchemaManager.saveAsDefault(this.trackManager, this.solCore);
+      SchemaManager.saveAsDefault(this.trackManager, this.solCore, this.soundEngine);
       showMsg('Esquema atual gravado como padrão!');
     });
 
     btnResetFactory.addEventListener('click', () => {
       if (confirm('Deseja realmente restaurar o esquema de fábrica original?')) {
-        SchemaManager.resetToFactory(this.trackManager, this.solCore);
+        SchemaManager.resetToFactory(this.trackManager, this.solCore, this.soundEngine);
         showMsg('Esquema padrão de fábrica restaurado!');
       }
     });

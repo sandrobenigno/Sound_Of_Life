@@ -35,8 +35,8 @@ window.addEventListener('DOMContentLoaded', () => {
   // 3. Instanciação do Musical Surface (Gerenciador de Pistas)
   const trackManager = new TrackManager(soundEngine);
 
-  // 4. Carrega o esquema padrão salvo ou de fábrica
-  SchemaManager.loadDefault(trackManager, solCore);
+  // 4. Carrega o esquema padrão salvo ou de fábrica (com 25% de FX padrão)
+  SchemaManager.loadDefault(trackManager, solCore, soundEngine);
 
   // 5. Conexão do Barramento de Eventos:
   // Quando o feixe do radar atinge um passo de fatia, entrega os estados ao Musical Surface
