@@ -121,17 +121,27 @@ export class TransportBar {
       fxDisplay.textContent = `${Math.round((val / 0.8) * 100)}%`;
     });
 
-    // Sincroniza o valor inicial do slider de FX
-    if (this.soundEngine) {
-      const initialFx = this.soundEngine.getFxLevel();
-      fxSlider.value = initialFx;
-      fxDisplay.textContent = `${Math.round((initialFx / 0.8) * 100)}%`;
+    const updateAudioButton = () => {
+      if (this.soundEngine && this.soundEngine.ctx && this.soundEngine.ctx.state === 'running') {
+        btnAudio.textContent = '🔊 Som Ativo';
+        btnAudio.className = 'btn btn-sm btn-audio audio-active';
+        btnAudio.title = 'Áudio desbloqueado e ativo';
+      } else {
+        btnAudio.textContent = '🔇 Clicar p/ Som';
+        btnAudio.className = 'btn btn-sm btn-audio audio-suspended';
+        btnAudio.title = 'Clique para desbloquear o áudio do navegador';
+      }
+    };
+
+    updateAudioButton();
+
+    if (this.soundEngine && this.soundEngine.ctx) {
+      this.soundEngine.ctx.addEventListener('statechange', updateAudioButton);
     }
 
     btnAudio.addEventListener('click', () => {
       this.soundEngine.unlock().then(() => {
-        btnAudio.textContent = '🔊 Áudio Ativo';
-        btnAudio.classList.add('active');
+        updateAudioButton();
       });
     });
 

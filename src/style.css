@@ -171,10 +171,28 @@ header {
   color: var(--text-dim);
 }
 
-.btn-sf2 {
+.btn-audio {
   border-color: var(--color-green);
   color: var(--color-green);
   background: rgba(0, 255, 102, 0.1);
+}
+
+.btn-audio.audio-suspended {
+  border-color: var(--color-amber);
+  color: var(--color-amber);
+  background: rgba(255, 183, 3, 0.15);
+  animation: pulse-audio 2s infinite ease-in-out;
+}
+
+.btn-audio.audio-active {
+  border-color: var(--color-green);
+  color: var(--color-green);
+  background: rgba(0, 255, 102, 0.15);
+}
+
+@keyframes pulse-audio {
+  0%, 100% { box-shadow: 0 0 4px rgba(255, 183, 3, 0.2); }
+  50% { box-shadow: 0 0 12px rgba(255, 183, 3, 0.6); }
 }
 
 /* Sliders */

@@ -39,12 +39,14 @@ export class SoundEngine {
     this.limiter.attack.setValueAtTime(0.001, this.ctx.currentTime);
     this.limiter.release.setValueAtTime(0.1, this.ctx.currentTime);
 
-    // 2. Master Gain
+    // 2. Master Gain com valor direto e agendado
     this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = 0.8;
     this.masterGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
 
     // 3. Barramento Central de Vozes (Recebe o som de todas as pistas)
     this.voiceBus = this.ctx.createGain();
+    this.voiceBus.gain.value = 1.0;
     this.voiceBus.gain.setValueAtTime(1.0, this.ctx.currentTime);
 
     // 4. Sinal Direto (Dry Signal) -> Limiter -> Master
@@ -52,10 +54,12 @@ export class SoundEngine {
 
     // 5. Barramento de Efeitos Espaciais (Delay Estéreo + Reverb)
     this.fxSendGain = this.ctx.createGain();
+    this.fxSendGain.gain.value = 0.5;
     this.fxSendGain.gain.setValueAtTime(0.5, this.ctx.currentTime);
 
     this.fxWetGain = this.ctx.createGain();
-    this.fxWetGain.gain.setValueAtTime(0.25, this.ctx.currentTime); // 25% de envio padrão
+    this.fxWetGain.gain.value = 0.25;
+    this.fxWetGain.gain.setValueAtTime(0.25, this.ctx.currentTime); // 25% padrão
 
     this._buildFxChain();
 
@@ -67,21 +71,19 @@ export class SoundEngine {
     this.synth = new WebAudioSynth(this.ctx, this.voiceBus);
     this.sf2Player = new SF2Player(this.ctx, this.voiceBus);
 
-    // Desbloqueia áudio no primeiro clique/toque do usuário
-    const unlock = () => {
-      if (this.ctx && this.ctx.state === 'suspended') {
-        this.ctx.resume().then(() => {
-          this.isUnlocked = true;
-        });
-      } else {
-        this.isUnlocked = true;
-      }
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
+    // Desbloqueia áudio no primeiro clique, toque ou tecla em qualquer ponto da página
+    const unlockHandler = () => {
+      this.unlock();
+      ['pointerdown', 'mousedown', 'touchstart', 'keydown'].forEach(evt => {
+        window.removeEventListener(evt, unlockHandler);
+        document.removeEventListener(evt, unlockHandler);
+      });
     };
 
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
+    ['pointerdown', 'mousedown', 'touchstart', 'keydown'].forEach(evt => {
+      window.addEventListener(evt, unlockHandler, { once: true, passive: true });
+      document.addEventListener(evt, unlockHandler, { once: true, passive: true });
+    });
   }
 
   _buildFxChain() {
