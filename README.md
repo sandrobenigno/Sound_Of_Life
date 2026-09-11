@@ -1,8 +1,10 @@
-# 🌐 SOUND OF LIFE (SOL) — Web Modular
+# 🌐 SOUND OF LIFE (SOL)
+
+![](img/interface.jpg)
 
 > **Sequenciador e Controlador de Música Generativa baseado em Autômato Celular (Conway's Game of Life) e Radar Polar.**  
-> *Autor Original: Sandro Benigno (Fevereiro/2021)*  
-> *Arquitetura Web Modular & Python Bridge (2026)*
+> *Original: Desenvolvido em Processing (Sandro Benigno, Fevereiro/2021)*  
+> *Arquitetura Web Modular & Python Bridge (Sandro Benigno, Setembro/2026)*
 
 ---
 
@@ -17,44 +19,44 @@ Nesta versão **Web Modular**, o sistema foi completamente reformulado sob uma a
 ## 🏛️ 2. Diagrama da Arquitetura
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                               SOL CORE                                 │
-│  • Autômato Celular Conway B3/S23 em topologia toroidal                │
-│  • Grade Polar: 72 fatias radiais (5°) x 24 trilhas concêntricas       │
-│  • Feixe de Varredura (Scanner) com rotação contínua e rastro fosforescente│
-│  • Interação direta: desenhar e apagar células com mouse/touch         │
-│  • 100% Agnóstico de áudio — Apenas gerador de eventos                 │
-└───────────────────────────────────┬────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                               SOL CORE                                           │
+│  • Autômato Celular Conway B3/S23 em topologia toroidal                          │
+│  • Grade Polar: 72 fatias radiais (5°) x 24 trilhas concêntricas                 │
+│  • Feixe de Varredura (Scanner) com rotação contínua e rastro fosforescente      │
+│  • Interação direta: desenhar e apagar células com mouse/touch                   │
+│  • 100% Agnóstico de áudio — Apenas gerador de eventos                           │
+└───────────────────────────────────┬──────────────────────────────────────────────┘
                                     │
                                     │  Eventos Abstratos (JSON / WebSockets)
                                     ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        MUSICAL SURFACE                                 │
-│  • Rack dinâmico de pistas (Classe Track — até 24 pistas verticais)    │
-│  • Mapeamento flexível para os 24 pontos de entrada do SOL            │
-│  • Listas Circulares de Notas e Catálogo de Escalas Musicais           │
-│  • Modos de Avanço: Sequencial (➡️/⬅️), Random (🎲), Pêndulo (↔️), Fatia (🎯)│
-│  • Controles de Dinâmica: Velocity, Duração de Gate (ms), Probabilidade│
-│  • Gerenciador de Esquemas: Salvar/Carregar (.sol.json) e Padrão       │
-└───────────────────────────────────┬────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                        MUSICAL SURFACE                                           │
+│  • Rack dinâmico de pistas (Classe Track — até 24 pistas verticais)              │
+│  • Mapeamento flexível para os 24 pontos de entrada do SOL                       │
+│  • Listas Circulares de Notas e Catálogo de Escalas Musicais                     │
+│  • Modos de Avanço: Sequencial (➡️/⬅️), Random (🎲), Pêndulo (↔️), Fatia (🎯)  │
+│  • Controles de Dinâmica: Velocity, Duração de Gate (ms), Probabilidade          │
+│  • Gerenciador de Esquemas: Salvar/Carregar (.sol.json) e Padrão                 │
+└───────────────────────────────────┬──────────────────────────────────────────────┘
                                     │
                                     │  Comandos de Disparo de Notas
                                     ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                          SOUND ENGINE                                  │
-│  • Sintetizador Polifônico Nativo Web Audio (Saw, Square, Sine, FM...) │
-│  • SF2 Player (Piano, Rhodes, Marimba, Celesta, Strings, Slap Bass...) │
-│  • Carregador dinâmico de arquivos SoundFont (.sf2) locais             │
-│  • Mixer Master com Limitador Anti-Clipping e Efeito Delay/Reverb      │
-└────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                          SOUND ENGINE                                          │
+│  • Sintetizador Polifônico Nativo Web Audio (Saw, Square, Sine, FM...)         │
+│  • SF2 Player (Piano, Rhodes, Marimba, Celesta, Strings, Slap Bass...)         │
+│  • Carregador dinâmico de arquivos SoundFont (.sf2) locais                     │
+│  • Mixer Master com Limitador Anti-Clipping e Efeito Delay/Reverb              │
+└────────────────────────────────────────────────────────────────────────────────┘
                                     ▲
                                     │  Opcional (Ponte Externa)
-┌───────────────────────────────────┴────────────────────────────────────┐
-│                        PYTHON OSC BRIDGE                               │
-│  • Escuta eventos de varredura via WebSocket (porta 8765)              │
-│  • Transmite pacotes OSC UDP para 127.0.0.1:5500 na rota /sol          │
-│  • Compatível com Ableton Live, Reaper, Max/MSP, PureData, SuperCollider│
-└────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────┴────────────────────────────────────────────┐
+│                        PYTHON OSC BRIDGE                                       │
+│  • Escuta eventos de varredura via WebSocket (porta 8765)                      │
+│  • Transmite pacotes OSC UDP para 127.0.0.1:5500 na rota /sol                  │
+│  • Compatível com Ableton Live, Reaper, Max/MSP, PureData, SuperCollider       │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -235,4 +237,5 @@ Idêntico à especificação original do Processing:
 ---
 
 ## 📄 Licença
-Desenvolvido com base no conceito original do **Sound of Life** por **Sandro Benigno** (2021). Código livre para fins educacionais, experimentação musical e desenvolvimento generativo.
+Desenvolvido com base no conceito original do **Sound of Life** por **Sandro Benigno** (2021).
+Código livre para fins educacionais, experimentação musical e desenvolvimento generativo.
