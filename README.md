@@ -238,5 +238,9 @@ Idêntico à especificação original do Processing:
 ---
 
 ## 📄 Licença
-Desenvolvido com base no conceito original do **Sound of Life** por **Sandro Benigno** (2021).
-Código livre para fins educacionais, experimentação musical e desenvolvimento generativo.
+
+Este projeto está licenciado sob os termos da **GNU General Public License v3.0 (GPL-3.0)**.  
+Consulte o arquivo [`LICENSE`](LICENSE) para obter o texto completo da licença.
+
+Desenvolvido por **Sandro Benigno** (2021, 2026).  
+Código aberto para fins educacionais, experimentação artística e desenvolvimento musical generativo.
