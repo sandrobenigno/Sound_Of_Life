@@ -515,44 +515,47 @@ main {
   border-bottom: 1px solid var(--border-dim);
   padding: 6px 16px;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  overflow-x: auto;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .map-bar-label {
   font-size: 10px;
-  color: var(--text-dim);
+  color: var(--color-cyan);
   font-weight: bold;
-  white-space: nowrap;
+  letter-spacing: 0.5px;
 }
 
 .map-bar-chips {
-  display: flex;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(24, minmax(14px, 18px));
+  gap: 3px;
+  width: 100%;
 }
 
 .ch-chip {
-  font-size: 9px;
-  width: 18px;
-  height: 18px;
+  font-size: 8.5px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 3px;
+  border-radius: 2.5px;
   font-weight: bold;
+  user-select: none;
+  transition: all 0.1s ease;
 }
 
 .ch-mapped {
   background: var(--color-green);
   color: #000;
-  box-shadow: 0 0 4px var(--color-green);
+  border: 1px solid var(--color-green);
+  box-shadow: 0 0 4px rgba(0, 255, 102, 0.5);
 }
 
 .ch-free {
-  background: #15222e;
+  background: #11222e;
   color: var(--text-dim);
-  border: 1px solid var(--border-dim);
+  border: 1px solid rgba(0, 255, 255, 0.35);
 }
 
 /* Tracks List (Vertical Stack) */
@@ -1080,7 +1083,31 @@ main {
   }
 
   .channel-map-bar {
-    padding: 4px 10px;
+    padding: 6px 10px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .map-bar-label {
+    font-size: 9.5px;
+    margin-bottom: 2px;
+  }
+
+  .map-bar-chips {
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    width: 100%;
+    gap: 2px;
+    box-sizing: border-box;
+  }
+
+  .ch-chip {
+    width: 100%;
+    height: 14px;
+    font-size: 7.5px;
+    border-radius: 2px;
+    padding: 0;
   }
 
   .tracks-list {
@@ -1204,6 +1231,13 @@ main {
 
 /* Telas ultra compactas (< 420px) */
 @media (max-width: 420px) {
+  .map-bar-chips {
+    gap: 1.5px;
+  }
+  .ch-chip {
+    height: 13px;
+    font-size: 7px;
+  }
   .track-actions-cell .btn-icon {
     width: 22px;
     height: 22px;
