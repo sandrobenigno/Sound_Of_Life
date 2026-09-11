@@ -85,11 +85,13 @@ export class RadarCanvas {
     } catch (_) {}
 
     const pos = this._getCanvasCoordinates(e);
+    const centerX = this.renderer ? this.renderer.centerX : this.canvas.width / 2;
+    const centerY = this.renderer ? this.renderer.centerY : this.canvas.height / 2;
     const hit = this.solCore.geo.screenToPolarGrid(
       pos.x,
       pos.y,
-      this.canvas.width / 2,
-      this.canvas.height / 2
+      centerX,
+      centerY
     );
 
     if (hit.inBounds) {
@@ -103,11 +105,13 @@ export class RadarCanvas {
   _onPointerMove(e) {
     if (!this.isMouseDown) return;
     const pos = this._getCanvasCoordinates(e);
+    const centerX = this.renderer ? this.renderer.centerX : this.canvas.width / 2;
+    const centerY = this.renderer ? this.renderer.centerY : this.canvas.height / 2;
     const hit = this.solCore.geo.screenToPolarGrid(
       pos.x,
       pos.y,
-      this.canvas.width / 2,
-      this.canvas.height / 2
+      centerX,
+      centerY
     );
 
     if (hit.inBounds) {

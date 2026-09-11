@@ -25,14 +25,28 @@ export class RadarRenderer {
 
     // Estados para efeitos visuais
     this.lastTriggerStates = new Array(this.geo.rows).fill(false);
+    this.centerX = 375;
+    this.centerY = 375;
   }
 
   resize(width, height) {
     this.canvas.width = width;
     this.canvas.height = height;
-    // Diâmetro balanceado com margem/padding suave ao redor do disco
-    const targetDiam = Math.max(260, Math.min(width - 24, height - 64));
+
+    const isCompact = width < 560;
+    const topMargin = isCompact ? 8 : 24;
+    const bottomMargin = isCompact ? 32 : 40;
+    const sideMargin = isCompact ? 10 : 24;
+
+    const availableHeight = height - (topMargin + bottomMargin);
+    const availableWidth = width - sideMargin;
+    const targetDiam = Math.max(240, Math.min(availableWidth, availableHeight));
+
     this.geo.updateMetrics(targetDiam);
+
+    this.centerX = width / 2;
+    // Centraliza perfeitamente no vão vertical útil (logo abaixo do topo/header e acima do Channels OUT)
+    this.centerY = topMargin + (availableHeight / 2);
   }
 
   /**
@@ -41,8 +55,8 @@ export class RadarRenderer {
   render(solCore) {
     const { ctx, canvas, geo } = this;
     const { width, height } = canvas;
-    const centerX = width / 2;
-    const centerY = height / 2;
+    const centerX = this.centerX || width / 2;
+    const centerY = this.centerY || height / 2;
 
     // 1. Fading background para efeito de persistência fosforescente do feixe
     ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
@@ -70,8 +84,8 @@ export class RadarRenderer {
 
     ctx.restore();
 
-    // 7. Header informativo (se habilitado)
-    if (this.options.showHeader) {
+    // 7. Header informativo (apenas em telas desktop / largura suficiente)
+    if (this.options.showHeader && width >= 560) {
       this._drawHeader(ctx);
     }
 
