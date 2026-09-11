@@ -49,7 +49,7 @@ export class TransportBar {
         <!-- Efeito Espaço (Delay / Reverb) -->
         <div class="transport-group fx-group" title="Intensidade do efeito espacial de Stereo Ping-Pong Delay e Reverb">
           <label for="fxSlider">ESPAÇO (FX):</label>
-          <input type="range" id="fxSlider" min="0" max="0.8" step="0.05" value="0.25">
+          <input type="range" id="fxSlider" min="0" max="1" step="0.01" value="0.25">
           <span id="fxDisplay">25%</span>
         </div>
 
@@ -118,7 +118,7 @@ export class TransportBar {
     fxSlider.addEventListener('input', (e) => {
       const val = parseFloat(e.target.value);
       this.soundEngine.setFxLevel(val);
-      fxDisplay.textContent = `${Math.round((val / 0.8) * 100)}%`;
+      fxDisplay.textContent = `${Math.round(val * 100)}%`;
     });
 
     const updateAudioButton = () => {

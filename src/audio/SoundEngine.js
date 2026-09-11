@@ -153,6 +153,7 @@ export class SoundEngine {
   setFxLevel(val) {
     if (!this.fxWetGain || !this.ctx) return;
     const clamped = Math.max(0, Math.min(1.0, val));
+    this.fxWetGain.gain.value = clamped;
     this.fxWetGain.gain.setValueAtTime(clamped, this.ctx.currentTime);
   }
 
