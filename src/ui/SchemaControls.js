@@ -1,6 +1,6 @@
 /**
  * SchemaControls.js
- * Painel de gerenciamento de esquemas (Salvar Arquivo, Carregar Arquivo, Definir Padrão, Reset de Fábrica e Carregador SF2).
+ * Painel de gerenciamento de esquemas (Salvar Arquivo, Carregar Arquivo, Reset de Fábrica e Carregador SF2).
  */
 
 import { SchemaManager } from '../surface/SchemaManager.js';

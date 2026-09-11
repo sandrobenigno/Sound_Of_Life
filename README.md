@@ -39,7 +39,7 @@ Nesta versão **Web Modular**, o sistema foi completamente reformulado sob uma a
 │  • Listas Circulares de Notas e Catálogo de Escalas Musicais                     │
 │  • Modos de Avanço: Sequencial (➡️/⬅️), Random (🎲), Pêndulo (↔️), Fatia (🎯)  │
 │  • Controles de Dinâmica: Velocity, Duração de Gate (ms), Probabilidade          │
-│  • Gerenciador de Esquemas: Salvar/Carregar (.sol.json) e Padrão                 │
+│  • Gerenciador de Esquemas: Salvar/Carregar (.sol.json) e Reset de Fábrica      │
 └───────────────────────────────────┬──────────────────────────────────────────────┘
                                     │
                                     │  Comandos de Disparo de Notas
@@ -140,7 +140,7 @@ SoundOfLife_WEB/
   - `mute` / `solo`: Controles individuais de mixagem.
 - **`TrackManager.js`**: Permite adicionar até 24 pistas dinamicamente (de cima para baixo). Informa quais canais estão livres e mapeados.
 - **`ScaleCatalog.js`**: Catálogo completo de escalas musicais (Pentatônica Menor/Maior, Eólio/Menor Natural, Jônio/Maior, Dórico, Frígio, Lídio, Mixolídio, Menor Harmônica, Blues, Hirajoshi, Insen, Árabe, Tons Inteiros e Cromática).
-- **`SchemaManager.js`**: Serializa o estado das pistas em arquivos `.sol.json` para download, importa arquivos JSON e permite salvar a configuração atual no `localStorage` como **Esquema Padrão**.
+- **`SchemaManager.js`**: Serializa o estado das pistas em arquivos `.sol.json` para download, importa arquivos JSON e gerencia a restauração do **Esquema Padrão de Fábrica**.
 
 ### 3. `Sound Engine` (`src/audio/`)
 - **`WebAudioSynth.js`**: Sintetizador nativo com envelopes ADSR exponenciais limpos (sem estalos), osciladores *Sawtooth*, *Square*, *Triangle*, *Sine*, *Synth Pluck* (filtro rápido descendente) e *FM Bell* (modulação de frequência metálica).
@@ -208,9 +208,8 @@ Se preferir usar seu próprio servidor estático (como VS Code Live Server ou `p
 No painel superior **ESQUEMAS & PRESETS**:
 1. **`⬇️ Salvar Arquivo`**: Gera e baixa um arquivo `.sol.json` contendo todas as pistas configuradas, instrumentos, escalas e velocidades.
 2. **`⬆️ Carregar Arquivo`**: Abre uma janela para selecionar e aplicar qualquer arquivo `.sol.json` salvo previamente.
-3. **`⭐ Definir como Padrão`**: Salva o arranjo atual no `localStorage` do seu navegador. Toda vez que você abrir a página, seu esquema personalizado será carregado automaticamente.
-4. **`🔄 Restaurar Fábrica`**: Restaura o esquema padrão inicial de fábrica (5 pistas equilibradas entre Sub Bass, Bassline, Pluck, Arp e Chime).
-5. **`📂 Carregar .SF2`**: Permite carregar seus próprios arquivos SoundFont `.sf2` locais para uso nas pistas.
+3. **`🔄 Restaurar Fábrica`**: Restaura o esquema padrão inicial de fábrica (5 pistas equilibradas entre Sub Bass, Bassline, Pluck, Arp e Chime).
+4. **`📂 Carregar .SF2`**: Permite carregar seus próprios arquivos SoundFont `.sf2` locais para uso nas pistas.
 
 ---
 
