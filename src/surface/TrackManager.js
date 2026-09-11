@@ -58,7 +58,7 @@ export class TrackManager {
     return avail.length > 0 ? avail[0] : 0;
   }
 
-  addTrack(config = {}) {
+  insertTrack(config = {}, index = this.tracks.length) {
     if (this.tracks.length >= MAX_TRACKS) {
       console.warn(`Limite máximo de ${MAX_TRACKS} pistas atingido.`);
       return null;
@@ -68,7 +68,6 @@ export class TrackManager {
       ? config.inputChannel
       : this.getFirstAvailableChannel();
 
-    const trackNumber = this.tracks.length + 1;
     const defaultName = config.name || `Pista ${inputChannel + 1}`;
 
     const track = new Track({
@@ -77,9 +76,14 @@ export class TrackManager {
       name: defaultName
     });
 
-    this.tracks.push(track);
+    const targetIdx = Math.max(0, Math.min(this.tracks.length, index));
+    this.tracks.splice(targetIdx, 0, track);
     this.notifyChange();
     return track;
+  }
+
+  addTrack(config = {}) {
+    return this.insertTrack(config, this.tracks.length);
   }
 
   removeTrack(trackId) {
@@ -94,15 +98,17 @@ export class TrackManager {
 
   duplicateTrack(trackId) {
     if (this.tracks.length >= MAX_TRACKS) return null;
-    const orig = this.getTrack(trackId);
-    if (!orig) return null;
+    const origIndex = this.tracks.findIndex(t => t.id === trackId);
+    if (origIndex === -1) return null;
+    const orig = this.tracks[origIndex];
 
     const json = orig.toJSON();
     delete json.id;
     json.name = `${orig.name} (Cópia)`;
     json.inputChannel = this.getFirstAvailableChannel();
 
-    return this.addTrack(json);
+    // Insere a nova pista duplicada imediatamente abaixo da original
+    return this.insertTrack(json, origIndex + 1);
   }
 
   getTrack(trackId) {
