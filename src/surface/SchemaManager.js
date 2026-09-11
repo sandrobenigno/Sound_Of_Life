@@ -6,11 +6,11 @@
 
 export const FACTORY_DEFAULT_SCHEMA = {
   version: '1.0',
-  timestamp: '2026-09-11T12:40:48.014Z',
+  timestamp: '2026-09-11T12:53:34.728Z',
   name: 'sol_schema_2026-09-11',
   fps: 30,
   autoRand: true,
-  fxLevel: 0.25,
+  fxLevel: 0.40,
   tracks: [
     {
       id: 'track_1789130185891_1',
@@ -30,7 +30,7 @@ export const FACTORY_DEFAULT_SCHEMA = {
         'A#1',
         'C2'
       ],
-      velocity: 93,
+      velocity: 127,
       velocityMode: 'fixed',
       velocityRange: [80, 120],
       duration: 580,
@@ -116,7 +116,7 @@ export const FACTORY_DEFAULT_SCHEMA = {
       id: 'track_1789130185891_4',
       name: 'Pista 4 - Arp High',
       inputChannel: 12,
-      soundSource: 'sf2:epiano',
+      soundSource: 'synth:square',
       rootNote: 'C',
       rootOctave: 4,
       scaleKey: 'pentatonic_minor',
@@ -135,10 +135,10 @@ export const FACTORY_DEFAULT_SCHEMA = {
         'A#5',
         'C6'
       ],
-      velocity: 80,
+      velocity: 114,
       velocityMode: 'random_range',
       velocityRange: [60, 100],
-      duration: 120,
+      duration: 240,
       probability: 85,
       gain: 0.7,
       mute: false,
