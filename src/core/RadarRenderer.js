@@ -30,8 +30,8 @@ export class RadarRenderer {
   resize(width, height) {
     this.canvas.width = width;
     this.canvas.height = height;
-    // Margem vertical segura para o subtítulo no topo e a barra de LEDs embaixo não encavalarem
-    const targetDiam = Math.max(260, Math.min(width - 40, height - 125));
+    // Margem vertical segura para o subtítulo no topo e o bloco Channels OUT embaixo
+    const targetDiam = Math.max(260, Math.min(width - 40, height - 135));
     this.geo.updateMetrics(targetDiam);
   }
 
@@ -218,12 +218,15 @@ export class RadarRenderer {
 
   _drawPauseIndicator(ctx, geo) {
     const scale = geo.label / 296;
-    const fontSize = Math.max(10, Math.round(18 * scale));
-    ctx.fillStyle = 'rgba(0, 200, 200, 0.9)';
+    const fontSize = Math.max(10, Math.round(15 * scale));
+    // Ponto médio exato do vão escuro entre o disco central e a primeira trilha do radar
+    const gapMidpoint = ((geo.label / 2) + geo.innerRadius) / 2;
+
+    ctx.fillStyle = 'rgba(0, 255, 255, 0.9)';
     ctx.font = `bold ${fontSize}px "Courier New", monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('[ PAUSED ]', 0, (geo.label / 2) + (24 * scale));
+    ctx.fillText('[ PAUSED ]', 0, gapMidpoint);
   }
 
   _drawHeader(ctx) {
@@ -243,7 +246,7 @@ export class RadarRenderer {
     // Escala dinâmica dos 24 LEDs para caber com folga na parte inferior
     const availableWidth = width - 40;
     const spc = Math.min(20, Math.max(12, availableWidth / 25));
-    const icon = Math.min(16, spc * 0.8);
+    const icon = Math.min(14, spc * 0.75); // Dimensão idêntica ao LED da surface (14px)
     const startX = 20;
     const startY = height - 20;
 
@@ -251,12 +254,15 @@ export class RadarRenderer {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
+    // Rótulo com o case solicitado e tipografia ampliada
     ctx.fillStyle = '#00ffff';
-    ctx.font = 'bold 11px "Courier New", monospace';
-    ctx.fillText('CHANNELS OUT', startX, startY - 36);
+    ctx.font = 'bold 13px "Courier New", monospace';
+    ctx.fillText('Channels OUT', startX, startY - 46);
 
-    ctx.font = '10px "Courier New", monospace';
-    ctx.fillText(`CH 0: ${frame}°`, startX, startY - 24);
+    // Ângulo ampliado com maior separação da barra de LEDs
+    ctx.fillStyle = 'rgba(0, 255, 255, 0.95)';
+    ctx.font = 'bold 14px "Courier New", monospace';
+    ctx.fillText(`${frame}°`, startX, startY - 29);
 
     const total = trackStates ? trackStates.length : 24;
     for (let x = 0; x < total; x++) {
@@ -265,29 +271,46 @@ export class RadarRenderer {
 
       // Número do canal
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#00ffff';
+      ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
       ctx.font = '9px "Courier New", monospace';
-      ctx.fillText((x + 1).toString(), posX, posY - 15);
+      ctx.fillText((x + 1).toString(), posX, posY - 14);
 
       const isActive = trackStates && trackStates[x];
 
       if (isActive) {
-        ctx.fillStyle = '#00ff00';
+        // LED Ativo com Glow idêntico à Musical Surface
+        ctx.save();
+        ctx.shadowColor = '#00ff66';
+        ctx.shadowBlur = 12;
+
+        // Núcleo verde fosforescente
+        ctx.fillStyle = '#00ff66';
         ctx.beginPath();
         ctx.arc(posX, posY, icon / 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // Glow
-        ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
-        ctx.lineWidth = 3;
+        // Anel fino de contenção
+        ctx.strokeStyle = '#00ff66';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.restore();
+
+        // Aura externa suave
+        ctx.strokeStyle = 'rgba(0, 255, 102, 0.4)';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(posX, posY, icon / 2 + 2, 0, Math.PI * 2);
         ctx.stroke();
       } else {
-        ctx.strokeStyle = 'rgba(0, 200, 200, 0.6)';
-        ctx.lineWidth = 1.5;
+        // LED Inativo: Fundo escuro #112222 e anel ciano fino 1.2px igual à surface
+        ctx.fillStyle = '#112222';
         ctx.beginPath();
         ctx.arc(posX, posY, icon / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.65)';
+        ctx.lineWidth = 1.2;
         ctx.stroke();
       }
     }
