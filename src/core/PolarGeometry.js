@@ -24,6 +24,8 @@ export class PolarGeometry {
 
   /**
    * Converte coordenadas cartesianas (relativas ao centro do radar) para (coluna, linha)
+   * row 0 = Pista interna (CH 1)
+   * row 23 = Pista externa (CH 24)
    */
   cartesianToPolarGrid(x, y) {
     const radius = Math.sqrt(x * x + y * y);
@@ -33,7 +35,7 @@ export class PolarGeometry {
     // Verifica se o clique está dentro da área ativa do radar
     if (radius <= this.outerRadius && radius >= this.innerRadius) {
       const col = Math.floor(angleDeg / this.sliceAngle);
-      const row = Math.floor((this.outerRadius - radius) / this.cell);
+      const row = Math.min(this.rows - 1, Math.floor((radius - this.innerRadius) / this.cell));
 
       if (col >= 0 && col < this.cols && row >= 0 && row < this.rows) {
         return { col, row, radius, angleDeg, inBounds: true };
@@ -54,9 +56,11 @@ export class PolarGeometry {
 
   /**
    * Retorna as coordenadas cartesianas do centro de uma célula (coluna, linha)
+   * row 0 = Pista interna (CH 1)
+   * row 23 = Pista externa (CH 24)
    */
   polarGridToCartesian(col, row) {
-    const r = (this.outerRadius - (row * this.cell)) - (this.cell / 2);
+    const r = this.innerRadius + (row * this.cell) + (this.cell / 2);
     const a = this.sliceAngle * col + (this.sliceAngle / 2);
     const rad = a * (Math.PI / 180);
     return {

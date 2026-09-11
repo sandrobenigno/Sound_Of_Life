@@ -30,8 +30,8 @@ export class RadarRenderer {
   resize(width, height) {
     this.canvas.width = width;
     this.canvas.height = height;
-    // Margem vertical segura para o subtítulo no topo e o bloco Channels OUT embaixo
-    const targetDiam = Math.max(260, Math.min(width - 40, height - 135));
+    // Diâmetro balanceado com margem/padding suave ao redor do disco
+    const targetDiam = Math.max(260, Math.min(width - 24, height - 64));
     this.geo.updateMetrics(targetDiam);
   }
 
@@ -231,7 +231,7 @@ export class RadarRenderer {
 
   _drawHeader(ctx) {
     ctx.save();
-    ctx.translate(18, 16);
+    ctx.translate(18, 12);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
@@ -242,79 +242,92 @@ export class RadarRenderer {
     ctx.restore();
   }
 
+  _drawRoundedRect(ctx, x, y, w, h, r) {
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+  }
+
   _drawChannelLeds(ctx, width, height, frame, trackStates) {
-    // Escala dinâmica dos 24 LEDs para caber com folga na parte inferior
-    const availableWidth = width - 40;
-    const spc = Math.min(20, Math.max(12, availableWidth / 25));
-    const icon = Math.min(14, spc * 0.75); // Dimensão idêntica ao LED da surface (14px)
-    const startX = 20;
-    const startY = height - 20;
+    const availableWidth = width - 36;
+    const total = trackStates ? trackStates.length : 24;
+    const gap = 3;
+    const chipW = Math.min(18, Math.max(12, Math.floor((availableWidth - (total - 1) * gap) / total)));
+    const chipH = Math.min(18, Math.max(12, chipW));
+    const spc = chipW + gap;
+    const startX = 18;
+    const startY = height - 12 - chipH;
 
     ctx.save();
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    // Rótulo com o case solicitado e tipografia ampliada
+    // Rótulo e Ângulo na mesma linha acima dos chips
     ctx.fillStyle = '#00ffff';
-    ctx.font = 'bold 13px "Courier New", monospace';
-    ctx.fillText('Channels OUT', startX, startY - 46);
+    ctx.font = 'bold 11px "Courier New", monospace';
+    ctx.fillText('Channels OUT', startX, startY - 9);
 
-    // Ângulo ampliado com maior separação da barra de LEDs
     ctx.fillStyle = 'rgba(0, 255, 255, 0.95)';
-    ctx.font = 'bold 14px "Courier New", monospace';
-    ctx.fillText(`${frame}°`, startX, startY - 29);
+    ctx.font = 'bold 11px "Courier New", monospace';
+    ctx.fillText(`${frame}°`, startX + 90, startY - 9);
 
-    const total = trackStates ? trackStates.length : 24;
     for (let x = 0; x < total; x++) {
       const posX = startX + x * spc;
       const posY = startY;
-
-      // Número do canal
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
-      ctx.font = '9px "Courier New", monospace';
-      ctx.fillText((x + 1).toString(), posX, posY - 14);
-
       const isActive = trackStates && trackStates[x];
 
       if (isActive) {
-        // LED Ativo com Glow idêntico à Musical Surface
+        // Chip Ativo: Fundo verde #00ff66 com glow suave e discreto
         ctx.save();
-        ctx.shadowColor = '#00ff66';
-        ctx.shadowBlur = 12;
-
-        // Núcleo verde fosforescente
+        ctx.shadowColor = 'rgba(0, 255, 102, 0.4)';
+        ctx.shadowBlur = 3;
         ctx.fillStyle = '#00ff66';
-        ctx.beginPath();
-        ctx.arc(posX, posY, icon / 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Anel fino de contenção
         ctx.strokeStyle = '#00ff66';
-        ctx.lineWidth = 1.2;
+        ctx.lineWidth = 1;
+        this._drawRoundedRect(ctx, posX, posY, chipW, chipH, 3);
+        ctx.fill();
         ctx.stroke();
-
         ctx.restore();
 
-        // Aura externa suave
-        ctx.strokeStyle = 'rgba(0, 255, 102, 0.4)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(posX, posY, icon / 2 + 2, 0, Math.PI * 2);
-        ctx.stroke();
+        // Número do canal em preto (como na Musical Surface)
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 9px "Courier New", monospace';
+        ctx.fillText((x + 1).toString(), posX + chipW / 2, posY + chipH / 2 + 0.5);
       } else {
-        // LED Inativo: Fundo escuro #112222 e anel ciano fino 1.2px igual à surface
-        ctx.fillStyle = '#112222';
-        ctx.beginPath();
-        ctx.arc(posX, posY, icon / 2, 0, Math.PI * 2);
+        // Chip Inativo: Fundo escuro #11222e, borda ciano e texto ciano
+        ctx.fillStyle = '#11222e';
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.35)';
+        ctx.lineWidth = 1;
+        this._drawRoundedRect(ctx, posX, posY, chipW, chipH, 3);
         ctx.fill();
-
-        ctx.strokeStyle = 'rgba(0, 255, 255, 0.65)';
-        ctx.lineWidth = 1.2;
         ctx.stroke();
+
+        // Número do canal em ciano suave
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.7)';
+        ctx.font = 'bold 9px "Courier New", monospace';
+        ctx.fillText((x + 1).toString(), posX + chipW / 2, posY + chipH / 2 + 0.5);
       }
     }
 
     ctx.restore();
   }
 }
+
+

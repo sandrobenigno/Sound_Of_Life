@@ -1,6 +1,7 @@
 /**
  * RadarCanvas.js
  * Componente de visualização e controle interativo do Radar SOL com suporte a mouse, toque e atalhos.
+ * Utiliza o motor vetorial nativo Canvas 2D de alta fidelidade e persistência de fósforo.
  */
 
 import { RadarRenderer } from '../core/RadarRenderer.js';
@@ -30,7 +31,10 @@ export class RadarCanvas {
     const rect = this.container.getBoundingClientRect();
     const size = Math.floor(Math.min(rect.width || 750, rect.height || 750));
     const finalSize = Math.max(320, size);
-    this.renderer.resize(finalSize, finalSize);
+
+    if (this.renderer) {
+      this.renderer.resize(finalSize, finalSize);
+    }
   }
 
   _bindEvents() {
@@ -61,9 +65,10 @@ export class RadarCanvas {
   }
 
   _getCanvasCoordinates(e) {
-    const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
+    const canvas = this.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
 
     return {
       x: (e.clientX - rect.left) * scaleX,
@@ -117,3 +122,5 @@ export class RadarCanvas {
     this.renderer.render(this.solCore);
   }
 }
+
+
