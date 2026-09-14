@@ -96,16 +96,22 @@ class SF2Parser {
       }
     }
 
-    return {
+    const rawParsed = {
       smplBuffer,
-      presets: phdrList,
-      samples: shdrList,
-      pbag: pbagList,
-      pgen: pgenList,
-      inst: instList,
-      ibag: ibagList,
-      igen: igenList
+      phdrList,
+      pbagList,
+      pgenList,
+      instList,
+      ibagList,
+      igenList,
+      shdrList,
+      samples: shdrList
     };
+
+    // Compila a árvore relacional completa: Preset -> Zonas -> Instrumento -> Zonas -> Samples
+    rawParsed.compiledPresets = this.buildPresetTree(rawParsed);
+
+    return rawParsed;
   }
 
   static _readString(dataView, offset, length) {
@@ -129,9 +135,7 @@ class SF2Parser {
       const preset = data.getUint16(pos + 20, true);
       const bank = data.getUint16(pos + 22, true);
       const bagIndex = data.getUint16(pos + 24, true);
-      if (name && name !== 'EOP') {
-        list.push({ name, preset, bank, bagIndex, index: i });
-      }
+      list.push({ name, preset, bank, bagIndex, index: i });
     }
     return list;
   }
@@ -143,7 +147,7 @@ class SF2Parser {
       const pos = offset + i * 4;
       const genIndex = data.getUint16(pos, true);
       const modIndex = data.getUint16(pos + 2, true);
-      list.push({ genIndex, modIndex });
+      list.push({ genIndex, modIndex, index: i });
     }
     return list;
   }
@@ -155,7 +159,7 @@ class SF2Parser {
       const pos = offset + i * 4;
       const oper = data.getUint16(pos, true);
       const amount = data.getInt16(pos + 2, true);
-      list.push({ oper, amount });
+      list.push({ oper, amount, index: i });
     }
     return list;
   }
@@ -167,9 +171,7 @@ class SF2Parser {
       const pos = offset + i * 22;
       const name = this._readString(data, pos, 20).trim();
       const bagIndex = data.getUint16(pos + 20, true);
-      if (name && name !== 'EOI') {
-        list.push({ name, bagIndex, index: i });
-      }
+      list.push({ name, bagIndex, index: i });
     }
     return list;
   }
@@ -189,22 +191,188 @@ class SF2Parser {
       const pitchCorrection = data.getInt8(pos + 41);
       const sampleType = data.getUint16(pos + 44, true);
 
-      if (name && name !== 'EOS') {
-        list.push({
-          name,
-          start,
-          end,
-          startLoop,
-          endLoop,
-          sampleRate: sampleRate || 44100,
-          originalPitch: originalPitch || 60,
-          pitchCorrection,
-          sampleType,
-          index: i
-        });
-      }
+      list.push({
+        name,
+        start,
+        end,
+        startLoop,
+        endLoop,
+        sampleRate: sampleRate || 44100,
+        originalPitch: originalPitch || 60,
+        pitchCorrection,
+        sampleType,
+        index: i
+      });
     }
     return list;
+  }
+
+  static _parseZoneGenerators(genList, start, end) {
+    const zone = {
+      keyRange: [0, 127],
+      velRange: [0, 127],
+      hasKeyRange: false,
+      hasVelRange: false,
+      fineTune: 0,
+      attenuation: 0
+    };
+
+    for (let g = start; g < end && g < genList.length; g++) {
+      const gen = genList[g];
+      switch (gen.oper) {
+        case 41: // instrument
+          zone.instrumentIndex = gen.amount;
+          break;
+        case 53: // sampleID
+          zone.sampleIndex = gen.amount;
+          break;
+        case 43: // keyRange
+          zone.keyRange = [gen.amount & 0xFF, (gen.amount >> 8) & 0xFF];
+          zone.hasKeyRange = true;
+          break;
+        case 44: // velRange
+          zone.velRange = [gen.amount & 0xFF, (gen.amount >> 8) & 0xFF];
+          zone.hasVelRange = true;
+          break;
+        case 51: // overridingRootKey
+          if (gen.amount >= 0 && gen.amount <= 127) {
+            zone.rootKey = gen.amount;
+          }
+          break;
+        case 52: // fineTune
+          zone.fineTune = gen.amount;
+          break;
+        case 54: // sampleModes
+          zone.sampleModes = gen.amount;
+          break;
+        case 56: // scaleTuning
+          zone.scaleTuning = gen.amount;
+          break;
+        case 8: // initialAttenuation
+          zone.attenuation = gen.amount;
+          break;
+      }
+    }
+    return zone;
+  }
+
+  /**
+   * Compila a árvore relacional completa SF2 para cada Preset
+   */
+  static buildPresetTree(parsed) {
+    const { phdrList, pbagList, pgenList, instList, ibagList, igenList, shdrList } = parsed;
+    const compiledPresets = [];
+
+    const presetCount = phdrList.length > 0 && phdrList[phdrList.length - 1].name === 'EOP'
+      ? phdrList.length - 1
+      : phdrList.length;
+
+    for (let i = 0; i < presetCount; i++) {
+      const phdr = phdrList[i];
+      if (phdr.name === 'EOP') continue;
+
+      const pbagStart = phdr.bagIndex;
+      const pbagEnd = (i + 1 < phdrList.length) ? phdrList[i + 1].bagIndex : pbagList.length;
+
+      let globalPZone = null;
+      const compiledZones = [];
+
+      for (let pb = pbagStart; pb < pbagEnd && pb < pbagList.length; pb++) {
+        const pgenStart = pbagList[pb].genIndex;
+        const pgenEnd = (pb + 1 < pbagList.length) ? pbagList[pb + 1].genIndex : pgenList.length;
+        const pZone = this._parseZoneGenerators(pgenList, pgenStart, pgenEnd);
+
+        // Se a zona de preset não possui instrumento (oper 41), ela é global
+        if (pZone.instrumentIndex === undefined) {
+          globalPZone = pZone;
+          continue;
+        }
+
+        // Aplica defaults da zona global do preset se aplicável
+        if (globalPZone) {
+          if (!pZone.hasKeyRange && globalPZone.hasKeyRange) pZone.keyRange = [...globalPZone.keyRange];
+          if (!pZone.hasVelRange && globalPZone.hasVelRange) pZone.velRange = [...globalPZone.velRange];
+          if (pZone.fineTune === 0 && globalPZone.fineTune !== 0) pZone.fineTune = globalPZone.fineTune;
+          if (pZone.attenuation === 0 && globalPZone.attenuation !== 0) pZone.attenuation = globalPZone.attenuation;
+        }
+
+        const instIdx = pZone.instrumentIndex;
+        if (instIdx >= 0 && instIdx < instList.length) {
+          const inst = instList[instIdx];
+          if (inst.name === 'EOI') continue;
+
+          const ibagStart = inst.bagIndex;
+          const ibagEnd = (instIdx + 1 < instList.length) ? instList[instIdx + 1].bagIndex : ibagList.length;
+
+          let globalIZone = null;
+
+          for (let ib = ibagStart; ib < ibagEnd && ib < ibagList.length; ib++) {
+            const igenStart = ibagList[ib].genIndex;
+            const igenEnd = (ib + 1 < ibagList.length) ? ibagList[ib + 1].genIndex : igenList.length;
+            const iZone = this._parseZoneGenerators(igenList, igenStart, igenEnd);
+
+            // Se a zona do instrumento não possui sample (oper 53), ela é global
+            if (iZone.sampleIndex === undefined) {
+              globalIZone = iZone;
+              continue;
+            }
+
+            // Aplica defaults da zona global do instrumento
+            if (globalIZone) {
+              if (!iZone.hasKeyRange && globalIZone.hasKeyRange) iZone.keyRange = [...globalIZone.keyRange];
+              if (!iZone.hasVelRange && globalIZone.hasVelRange) iZone.velRange = [...globalIZone.velRange];
+              if (iZone.fineTune === 0 && globalIZone.fineTune !== 0) iZone.fineTune = globalIZone.fineTune;
+              if (iZone.attenuation === 0 && globalIZone.attenuation !== 0) iZone.attenuation = globalIZone.attenuation;
+              if (iZone.rootKey === undefined && globalIZone.rootKey !== undefined) iZone.rootKey = globalIZone.rootKey;
+              if (iZone.sampleModes === undefined && globalIZone.sampleModes !== undefined) iZone.sampleModes = globalIZone.sampleModes;
+            }
+
+            const smpIdx = iZone.sampleIndex;
+            if (smpIdx >= 0 && smpIdx < shdrList.length) {
+              const smp = shdrList[smpIdx];
+              if (smp.name === 'EOS') continue;
+
+              // Calcula interseção de keyRange e velRange
+              const keyMin = Math.max(pZone.keyRange[0], iZone.keyRange[0]);
+              const keyMax = Math.min(pZone.keyRange[1], iZone.keyRange[1]);
+              if (keyMin > keyMax) continue;
+
+              const velMin = Math.max(pZone.velRange[0], iZone.velRange[0]);
+              const velMax = Math.min(pZone.velRange[1], iZone.velRange[1]);
+              if (velMin > velMax) continue;
+
+              const rootKey = (iZone.rootKey !== undefined)
+                ? iZone.rootKey
+                : ((pZone.rootKey !== undefined) ? pZone.rootKey : (smp.originalPitch || 60));
+
+              const fineTune = (iZone.fineTune || 0) + (pZone.fineTune || 0) + (smp.pitchCorrection || 0);
+
+              compiledZones.push({
+                keyRange: [keyMin, keyMax],
+                velRange: [velMin, velMax],
+                sampleIndex: smpIdx,
+                sampleName: smp.name,
+                sample: smp,
+                rootKey,
+                fineTune,
+                scaleTuning: iZone.scaleTuning ?? 100,
+                sampleModes: iZone.sampleModes ?? 0,
+                attenuation: (iZone.attenuation || 0) + (pZone.attenuation || 0)
+              });
+            }
+          }
+        }
+      }
+
+      compiledPresets.push({
+        name: phdr.name,
+        preset: phdr.preset,
+        bank: phdr.bank,
+        zones: compiledZones
+      });
+    }
+
+    return compiledPresets;
   }
 }
 
@@ -212,19 +380,20 @@ export class SF2Player {
   constructor(audioContext, masterDestination) {
     this.ctx = audioContext;
     this.dest = masterDestination;
-    this.customSoundFonts = []; // Lista de soundfonts carregados com seus instrumentos
+    this.customSoundFonts = [];
     this.loadedSf2Data = new Map(); // id -> parsed SF2 data
-    this.audioBufferCache = new Map(); // sampleIndex -> AudioBuffer
+    this.audioBufferCache = new Map(); // `${sf2Id}_${sampleIndex}` -> AudioBuffer
   }
 
   getAvailablePresets() {
     const userPresets = [];
     for (const [sf2Id, sfData] of this.loadedSf2Data.entries()) {
-      if (sfData.presets && sfData.presets.length > 0) {
-        sfData.presets.forEach((preset, pIdx) => {
+      if (sfData.compiledPresets && sfData.compiledPresets.length > 0) {
+        sfData.compiledPresets.forEach((preset, pIdx) => {
+          const bankStr = preset.bank > 0 ? ` [Bnk ${preset.bank}]` : '';
           userPresets.push({
             id: `sf2custom:${sf2Id}:${pIdx}`,
-            name: `📦 [${sfData.fileName}] ${preset.name} (${preset.preset}:${preset.bank})`,
+            name: `📦 [${sfData.fileName}] ${preset.name}${bankStr}`,
             category: sfData.fileName,
             sf2Id,
             presetIndex: pIdx
@@ -251,45 +420,53 @@ export class SF2Player {
   }
 
   /**
-   * Carrega e analisa um arquivo .sf2 real do usuário
+   * Carrega e analisa um arquivo .sf2 real do usuário de forma ultra rápida com lazy caching
    */
   async loadSoundFontFile(file) {
     const arrayBuffer = await file.arrayBuffer();
     const parsed = SF2Parser.parse(arrayBuffer);
 
     const sf2Id = `sf2_${Date.now()}`;
-    parsed.fileName = file.name.replace('.sf2', '');
+    parsed.fileName = file.name.replace(/\.sf2$/i, '');
     parsed.id = sf2Id;
 
-    // Converte os samples PCM 16-bit em AudioBuffers do Web Audio
-    if (parsed.smplBuffer && parsed.samples.length > 0) {
-      for (const smp of parsed.samples) {
-        try {
-          const length = smp.end - smp.start;
-          if (length > 0 && smp.start + length <= parsed.smplBuffer.length) {
-            const audioBuffer = this.ctx.createBuffer(1, length, smp.sampleRate);
-            const channelData = audioBuffer.getChannelData(0);
-            const raw = parsed.smplBuffer;
-            const start = smp.start;
-
-            for (let i = 0; i < length; i++) {
-              channelData[i] = raw[start + i] / 32768.0;
-            }
-
-            this.audioBufferCache.set(`${sf2Id}_${smp.index}`, {
-              buffer: audioBuffer,
-              sample: smp
-            });
-          }
-        } catch (e) {
-          console.warn(`Erro ao criar AudioBuffer para sample ${smp.name}:`, e);
-        }
-      }
-    }
-
     this.loadedSf2Data.set(sf2Id, parsed);
-    console.log(`[SF2] Carregado "${file.name}": ${parsed.presets.length} presets, ${parsed.samples.length} samples.`);
+    console.log(`[SF2] Carregado "${file.name}": ${parsed.compiledPresets ? parsed.compiledPresets.length : 0} presets compilados, ${parsed.samples.length} samples brutos.`);
     return parsed;
+  }
+
+  /**
+   * Decodifica sob demanda (lazy) o AudioBuffer do sample solicitado e o armazena em cache
+   */
+  _getOrCreateAudioBuffer(sf2Id, sampleIndex) {
+    const cacheKey = `${sf2Id}_${sampleIndex}`;
+    const cached = this.audioBufferCache.get(cacheKey);
+    if (cached) return cached;
+
+    const sfData = this.loadedSf2Data.get(sf2Id);
+    if (!sfData || !sfData.smplBuffer || !sfData.samples[sampleIndex]) return null;
+
+    const smp = sfData.samples[sampleIndex];
+    const length = smp.end - smp.start;
+    if (length <= 0 || smp.start + length > sfData.smplBuffer.length) return null;
+
+    try {
+      const audioBuffer = this.ctx.createBuffer(1, length, smp.sampleRate || 44100);
+      const channelData = audioBuffer.getChannelData(0);
+      const raw = sfData.smplBuffer;
+      const start = smp.start;
+
+      for (let i = 0; i < length; i++) {
+        channelData[i] = raw[start + i] / 32768.0;
+      }
+
+      const item = { buffer: audioBuffer, sample: smp };
+      this.audioBufferCache.set(cacheKey, item);
+      return item;
+    } catch (e) {
+      console.warn(`[SF2] Erro ao decodificar buffer para sample ${smp.name}:`, e);
+      return null;
+    }
   }
 
   playNote({ note, freq, velocity = 90, duration = 200, soundSource = 'sf2:piano', gain = 1.0 }) {
@@ -346,52 +523,151 @@ export class SF2Player {
 
   _playCustomSf2Sample(sf2Id, target, midiNote, vel, dur, gainMultiplier, now) {
     const sfData = this.loadedSf2Data.get(sf2Id);
-    if (!sfData || sfData.samples.length === 0) return false;
+    if (!sfData) return false;
 
-    // Encontra o sample mais próximo da nota MIDI tocada
-    let bestSample = null;
-    let minDistance = 999;
+    // 1. Identifica o preset alvo
+    let targetPreset = null;
+    const presetIdx = parseInt(target, 10);
+    if (!isNaN(presetIdx) && sfData.compiledPresets && sfData.compiledPresets[presetIdx]) {
+      targetPreset = sfData.compiledPresets[presetIdx];
+    } else if (sfData.compiledPresets && sfData.compiledPresets.length > 0) {
+      targetPreset = sfData.compiledPresets[0];
+    }
 
-    for (const smp of sfData.samples) {
-      const dist = Math.abs(smp.originalPitch - midiNote);
-      if (dist < minDistance) {
-        minDistance = dist;
-        bestSample = smp;
+    if (!targetPreset || !targetPreset.zones || targetPreset.zones.length === 0) {
+      // Fallback para samples brutos se o SF2 não tiver presets compilados
+      if (sfData.samples && sfData.samples.length > 0) {
+        let bestSample = null;
+        let minDistance = 999;
+        for (const smp of sfData.samples) {
+          const dist = Math.abs(smp.originalPitch - midiNote);
+          if (dist < minDistance) {
+            minDistance = dist;
+            bestSample = smp;
+          }
+        }
+        if (bestSample) {
+          const cached = this._getOrCreateAudioBuffer(sf2Id, bestSample.index);
+          if (cached && cached.buffer) {
+            const source = this.ctx.createBufferSource();
+            source.buffer = cached.buffer;
+            const semitoneOffset = (midiNote - bestSample.originalPitch) + (bestSample.pitchCorrection / 100);
+            source.playbackRate.setValueAtTime(Math.pow(2, semitoneOffset / 12), now);
+            const gainNode = this.ctx.createGain();
+            const peakGain = 0.5 * vel * gainMultiplier;
+            gainNode.gain.setValueAtTime(0.0001, now);
+            gainNode.gain.exponentialRampToValueAtTime(peakGain, now + 0.005);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, now + dur + 0.1);
+            source.connect(gainNode);
+            gainNode.connect(this.dest);
+            source.start(now);
+            source.stop(now + dur + 0.15);
+            setTimeout(() => {
+              try { source.disconnect(); gainNode.disconnect(); } catch (_) {}
+            }, (dur + 0.2) * 1000);
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // 2. Procura as zonas do preset que correspondem à nota MIDI e velocity
+    const velMidi = Math.round(vel * 127);
+    let matchingZones = targetPreset.zones.filter(z =>
+      midiNote >= z.keyRange[0] && midiNote <= z.keyRange[1] &&
+      velMidi >= z.velRange[0] && velMidi <= z.velRange[1]
+    );
+
+    // Fallback de velocity se não houver camada específica
+    if (matchingZones.length === 0) {
+      matchingZones = targetPreset.zones.filter(z =>
+        midiNote >= z.keyRange[0] && midiNote <= z.keyRange[1]
+      );
+    }
+
+    // Fallback de proximidade de nota DENTRO DO MESMO INSTRUMENTO se a nota estiver fora do range
+    if (matchingZones.length === 0) {
+      let closestZone = null;
+      let minPitchDiff = 999;
+      for (const z of targetPreset.zones) {
+        const diff = Math.min(
+          Math.abs(z.keyRange[0] - midiNote),
+          Math.abs(z.keyRange[1] - midiNote),
+          Math.abs(z.rootKey - midiNote)
+        );
+        if (diff < minPitchDiff) {
+          minPitchDiff = diff;
+          closestZone = z;
+        }
+      }
+      if (closestZone) {
+        matchingZones = [closestZone];
       }
     }
 
-    if (!bestSample) return false;
+    if (matchingZones.length === 0) return false;
 
-    const cached = this.audioBufferCache.get(`${sf2Id}_${bestSample.index}`);
-    if (!cached || !cached.buffer) return false;
+    // 3. Toca as zonas correspondentes (até 2 para stereo/layers)
+    const zonesToPlay = matchingZones.slice(0, 2);
+    let anyPlayed = false;
 
-    // Cria nó de reprodução do sample nativo do SF2
-    const source = this.ctx.createBufferSource();
-    source.buffer = cached.buffer;
+    for (const zone of zonesToPlay) {
+      const cached = this._getOrCreateAudioBuffer(sf2Id, zone.sampleIndex);
+      if (!cached || !cached.buffer) continue;
 
-    // Pitch shifting preciso com afinação do SoundFont
-    const semitoneOffset = (midiNote - bestSample.originalPitch) + (bestSample.pitchCorrection / 100);
-    source.playbackRate.setValueAtTime(Math.pow(2, semitoneOffset / 12), now);
+      const buffer = cached.buffer;
+      const smp = cached.sample;
 
-    // Envelope de ganho do sample
-    const gainNode = this.ctx.createGain();
-    const peakGain = 0.5 * vel * gainMultiplier;
-    gainNode.gain.setValueAtTime(0.0001, now);
-    gainNode.gain.exponentialRampToValueAtTime(peakGain, now + 0.005);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + dur + 0.1);
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
 
-    source.connect(gainNode);
-    gainNode.connect(this.dest);
+      // Pitch shifting preciso com afinação do SoundFont e da zona
+      const rootKey = zone.rootKey ?? smp.originalPitch ?? 60;
+      const fineTune = zone.fineTune || 0;
+      const scaleTuning = (zone.scaleTuning ?? 100) / 100;
+      const semitoneOffset = (midiNote - rootKey) * scaleTuning + (fineTune / 100);
+      const playbackRate = Math.max(0.01, Math.pow(2, semitoneOffset / 12));
+      source.playbackRate.setValueAtTime(playbackRate, now);
 
-    source.start(now);
-    source.stop(now + dur + 0.15);
+      // Looping se habilitado na amostra
+      if (zone.sampleModes === 1 || zone.sampleModes === 3) {
+        const loopStartSec = (smp.startLoop - smp.start) / smp.sampleRate;
+        const loopEndSec = (smp.endLoop - smp.start) / smp.sampleRate;
+        if (loopStartSec >= 0 && loopEndSec > loopStartSec && loopEndSec <= buffer.duration) {
+          source.loop = true;
+          source.loopStart = loopStartSec;
+          source.loopEnd = loopEndSec;
+        }
+      }
 
-    setTimeout(() => {
-      source.disconnect();
-      gainNode.disconnect();
-    }, (dur + 0.2) * 1000);
+      // Ganho e atenuação do SF2
+      const attenDb = (zone.attenuation || 0) / 100; // centibels -> dB
+      const attenLinear = Math.pow(10, -attenDb / 20);
+      const gainNode = this.ctx.createGain();
+      const peakGain = Math.min(1.0, 0.5 * vel * gainMultiplier * attenLinear);
 
-    return true;
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(Math.max(0.0001, peakGain), now + 0.005);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + dur + 0.12);
+
+      source.connect(gainNode);
+      gainNode.connect(this.dest);
+
+      source.start(now);
+      source.stop(now + dur + 0.15);
+
+      setTimeout(() => {
+        try {
+          source.disconnect();
+          gainNode.disconnect();
+        } catch (_) {}
+      }, (dur + 0.25) * 1000);
+
+      anyPlayed = true;
+    }
+
+    return anyPlayed;
   }
 
   /* ---------------- MODELOS ACÚSTICOS EMBUTIDOS ---------------- */
