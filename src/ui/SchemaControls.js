@@ -54,12 +54,17 @@ export class SchemaControls {
     const fileSf2 = this.container.querySelector('#fileSf2Input');
     const msgEl = this.container.querySelector('#schemaStatusMessage');
 
-    const showMsg = (text, isError = false) => {
+    let msgTimer = null;
+    const showMsg = (text, type = 'success', duration = 4000) => {
+      if (msgTimer) clearTimeout(msgTimer);
       msgEl.textContent = text;
-      msgEl.className = `schema-msg ${isError ? 'msg-error' : 'msg-success'}`;
-      setTimeout(() => {
+      let className = 'schema-msg msg-success';
+      if (type === 'error' || type === true) className = 'schema-msg msg-error';
+      else if (type === 'warning') className = 'schema-msg msg-warning';
+      msgEl.className = className;
+      msgTimer = setTimeout(() => {
         msgEl.textContent = '';
-      }, 4000);
+      }, duration);
     };
 
     const btnToggle = document.getElementById('btnMenuToggle');
@@ -86,10 +91,15 @@ export class SchemaControls {
       const file = e.target.files[0];
       if (file) {
         try {
-          await SchemaManager.importFromFile(file, this.trackManager, this.solCore, this.soundEngine);
-          showMsg(`Esquema "${file.name}" carregado com sucesso!`);
+          const schema = await SchemaManager.importFromFile(file, this.trackManager, this.solCore, this.soundEngine);
+          const missingSf = SchemaManager.getMissingSoundFonts(schema, this.soundEngine);
+          if (missingSf.length > 0) {
+            showMsg(`⚠️ Esquema carregado! Carregue o SoundFont "${missingSf.join(', ')}" para ativar os timbres.`, 'warning', 8000);
+          } else {
+            showMsg(`Esquema "${file.name}" carregado com sucesso!`);
+          }
         } catch (err) {
-          showMsg(`Erro ao carregar: ${err.message}`, true);
+          showMsg(`Erro ao carregar: ${err.message}`, 'error');
         }
       }
       fileInput.value = '';
@@ -108,9 +118,9 @@ export class SchemaControls {
         try {
           const entry = await this.soundEngine.sf2Player.loadSoundFontFile(file);
           this.trackManager.notifyChange();
-          showMsg(`SoundFont "${file.name}" adicionado à lista de timbres!`);
+          showMsg(`✅ SoundFont "${file.name}" carregado! Timbres vinculados com sucesso!`, 'success', 5000);
         } catch (err) {
-          showMsg(`Erro no SF2: ${err.message}`, true);
+          showMsg(`Erro no SF2: ${err.message}`, 'error');
         }
       }
       fileSf2.value = '';

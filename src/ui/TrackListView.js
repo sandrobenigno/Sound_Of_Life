@@ -100,10 +100,21 @@ export class TrackListView {
 
     // Opções de Fontes Sonoras (Synths e SF2s)
     let soundOptions = '';
+    let foundCurrentSource = false;
     sources.forEach(src => {
       const isSelected = src.id === track.soundSource;
+      if (isSelected) foundCurrentSource = true;
       soundOptions += `<option value="${src.id}" ${isSelected ? 'selected' : ''}>${src.name}</option>`;
     });
+
+    // Se o soundSource for um SF2 personalizado que ainda não foi carregado nesta sessão
+    if (!foundCurrentSource && track.soundSource && track.soundSource.startsWith('sf2custom:')) {
+      const parts = track.soundSource.split(':');
+      const sfName = parts[1] || 'SoundFont';
+      const prs = parts[2] !== undefined ? `Prs ${parts[2]}` : '';
+      const bnk = parts[3] !== undefined && parts[3] !== '0' ? ` Bnk ${parts[3]}` : '';
+      soundOptions = `<option value="${track.soundSource}" selected>📦 [Pendente: ${sfName}.sf2] ${prs}${bnk}</option>` + soundOptions;
+    }
 
     // Opções de Escalas
     let scaleOptions = '';

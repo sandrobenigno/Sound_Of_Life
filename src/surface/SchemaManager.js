@@ -185,9 +185,46 @@ const STORAGE_KEY = 'sol_default_schema_v1';
 
 export class SchemaManager {
   /**
+   * Extrai a lista de arquivos SoundFonts (.sf2) necessários para as pistas de um esquema
+   */
+  static getRequiredSoundFonts(tracks) {
+    const set = new Set();
+    if (Array.isArray(tracks)) {
+      for (const t of tracks) {
+        if (typeof t.soundSource === 'string' && t.soundSource.startsWith('sf2custom:')) {
+          const parts = t.soundSource.split(':');
+          const sfName = parts[1];
+          if (sfName && !sfName.startsWith('sf2_')) {
+            set.add(sfName.endsWith('.sf2') ? sfName : `${sfName}.sf2`);
+          }
+        }
+      }
+    }
+    return Array.from(set);
+  }
+
+  /**
+   * Retorna os nomes dos SoundFonts necessários pelo esquema que ainda não estão carregados
+   */
+  static getMissingSoundFonts(schema, soundEngine) {
+    if (!soundEngine || !soundEngine.sf2Player) return [];
+    const required = schema.requiredSoundFonts || this.getRequiredSoundFonts(schema.tracks);
+    const missing = [];
+    for (const sf of required) {
+      if (!soundEngine.sf2Player.isSoundFontLoaded(sf)) {
+        missing.push(sf);
+      }
+    }
+    return missing;
+  }
+
+  /**
    * Exporta a configuração atual para um arquivo .sol.json baixado no navegador
    */
   static exportToFile(trackManager, solCore, soundEngine = null, filename = 'sound_of_life_schema.sol.json') {
+    const tracksJson = trackManager.toJSON();
+    const requiredSoundFonts = this.getRequiredSoundFonts(tracksJson);
+
     const schema = {
       version: '1.0',
       timestamp: new Date().toISOString(),
@@ -195,7 +232,8 @@ export class SchemaManager {
       fps: solCore ? solCore.targetFps : 30,
       autoRand: solCore ? solCore.autoRand : true,
       fxLevel: soundEngine ? soundEngine.getFxLevel() : 0.25,
-      tracks: trackManager.toJSON()
+      requiredSoundFonts: requiredSoundFonts,
+      tracks: tracksJson
     };
 
     const jsonStr = JSON.stringify(schema, null, 2);

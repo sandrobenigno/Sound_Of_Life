@@ -387,15 +387,19 @@ export class SF2Player {
 
   getAvailablePresets() {
     const userPresets = [];
-    for (const [sf2Id, sfData] of this.loadedSf2Data.entries()) {
+    for (const sfData of this.loadedSf2Data.values()) {
       if (sfData.compiledPresets && sfData.compiledPresets.length > 0) {
         sfData.compiledPresets.forEach((preset, pIdx) => {
           const bankStr = preset.bank > 0 ? ` [Bnk ${preset.bank}]` : '';
+          const stableId = `sf2custom:${sfData.fileName}:${preset.preset}:${preset.bank}`;
           userPresets.push({
-            id: `sf2custom:${sf2Id}:${pIdx}`,
+            id: stableId,
             name: `📦 [${sfData.fileName}] ${preset.name}${bankStr}`,
             category: sfData.fileName,
-            sf2Id,
+            fileName: sfData.fileName,
+            presetNum: preset.preset,
+            bankNum: preset.bank,
+            presetName: preset.name,
             presetIndex: pIdx
           });
         });
@@ -403,10 +407,10 @@ export class SF2Player {
         // Fallback: Lista os samples brutos
         sfData.samples.slice(0, 32).forEach((smp, sIdx) => {
           userPresets.push({
-            id: `sf2custom:${sf2Id}:smp_${sIdx}`,
+            id: `sf2custom:${sfData.fileName}:smp_${sIdx}`,
             name: `🎵 [${sfData.fileName}] ${smp.name}`,
             category: sfData.fileName,
-            sf2Id,
+            fileName: sfData.fileName,
             sampleIndex: sIdx
           });
         });
@@ -417,6 +421,73 @@ export class SF2Player {
       ...BUILTIN_SF2_PRESETS,
       ...userPresets
     ];
+  }
+
+  /**
+   * Verifica se um SoundFont com o nome especificado está carregado na memória
+   */
+  isSoundFontLoaded(fileName) {
+    if (!fileName) return false;
+    const norm = fileName.toLowerCase().replace(/\.sf2$/i, '');
+    for (const sfData of this.loadedSf2Data.values()) {
+      if (sfData.fileName.toLowerCase().replace(/\.sf2$/i, '') === norm || sfData.id === fileName) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Retorna os nomes de todos os SoundFonts carregados
+   */
+  getLoadedSoundFontNames() {
+    const names = [];
+    for (const sfData of this.loadedSf2Data.values()) {
+      names.push(sfData.fileName);
+    }
+    return names;
+  }
+
+  /**
+   * Localiza os dados compilados de um SoundFont carregado por nome de arquivo ou ID
+   */
+  _findLoadedSf2Data(fileNameOrId) {
+    if (!fileNameOrId) return null;
+    if (this.loadedSf2Data.has(fileNameOrId)) {
+      return this.loadedSf2Data.get(fileNameOrId);
+    }
+    const normSearch = fileNameOrId.toLowerCase().replace(/\.sf2$/i, '');
+    for (const sfData of this.loadedSf2Data.values()) {
+      const normFileName = sfData.fileName.toLowerCase().replace(/\.sf2$/i, '');
+      if (normFileName === normSearch || sfData.id === fileNameOrId) {
+        return sfData;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Localiza o preset correto dentro dos dados do SoundFont por número de preset/banco ou índice
+   */
+  _findPresetInSfData(sfData, presetNumStr, bankNumStr) {
+    if (!sfData || !sfData.compiledPresets || sfData.compiledPresets.length === 0) return null;
+
+    const presetNum = parseInt(presetNumStr, 10);
+    const bankNum = bankNumStr !== undefined ? parseInt(bankNumStr, 10) : 0;
+
+    // 1. Procura por correspondência exata de Preset e Banco MIDI
+    if (!isNaN(presetNum)) {
+      const match = sfData.compiledPresets.find(p => p.preset === presetNum && (isNaN(bankNum) || p.bank === bankNum));
+      if (match) return match;
+    }
+
+    // 2. Fallback: Procura por índice no array
+    if (!isNaN(presetNum) && sfData.compiledPresets[presetNum]) {
+      return sfData.compiledPresets[presetNum];
+    }
+
+    // 3. Fallback: Primeiro preset disponível
+    return sfData.compiledPresets[0];
   }
 
   /**
@@ -443,7 +514,7 @@ export class SF2Player {
     const cached = this.audioBufferCache.get(cacheKey);
     if (cached) return cached;
 
-    const sfData = this.loadedSf2Data.get(sf2Id);
+    const sfData = this._findLoadedSf2Data(sf2Id);
     if (!sfData || !sfData.smplBuffer || !sfData.samples[sampleIndex]) return null;
 
     const smp = sfData.samples[sampleIndex];
@@ -484,10 +555,11 @@ export class SF2Player {
     // 1. Verifica se é um SF2 Custom carregado pelo usuário
     if (soundSource.startsWith('sf2custom:')) {
       const parts = soundSource.split(':');
-      const sf2Id = parts[1];
-      const target = parts[2];
+      const sfNameOrId = parts[1];
+      const presetNum = parts[2];
+      const bankNum = parts[3];
 
-      const played = this._playCustomSf2Sample(sf2Id, target, midiNote, velNorm, durSec, gain, now);
+      const played = this._playCustomSf2Sample(sfNameOrId, presetNum, bankNum, midiNote, velNorm, durSec, gain, now);
       if (played) return;
     }
 
@@ -521,18 +593,12 @@ export class SF2Player {
     }
   }
 
-  _playCustomSf2Sample(sf2Id, target, midiNote, vel, dur, gainMultiplier, now) {
-    const sfData = this.loadedSf2Data.get(sf2Id);
+  _playCustomSf2Sample(sfNameOrId, presetNum, bankNum, midiNote, vel, dur, gainMultiplier, now) {
+    const sfData = this._findLoadedSf2Data(sfNameOrId);
     if (!sfData) return false;
 
     // 1. Identifica o preset alvo
-    let targetPreset = null;
-    const presetIdx = parseInt(target, 10);
-    if (!isNaN(presetIdx) && sfData.compiledPresets && sfData.compiledPresets[presetIdx]) {
-      targetPreset = sfData.compiledPresets[presetIdx];
-    } else if (sfData.compiledPresets && sfData.compiledPresets.length > 0) {
-      targetPreset = sfData.compiledPresets[0];
-    }
+    const targetPreset = this._findPresetInSfData(sfData, presetNum, bankNum);
 
     if (!targetPreset || !targetPreset.zones || targetPreset.zones.length === 0) {
       // Fallback para samples brutos se o SF2 não tiver presets compilados
@@ -547,7 +613,7 @@ export class SF2Player {
           }
         }
         if (bestSample) {
-          const cached = this._getOrCreateAudioBuffer(sf2Id, bestSample.index);
+          const cached = this._getOrCreateAudioBuffer(sfData.id, bestSample.index);
           if (cached && cached.buffer) {
             const source = this.ctx.createBufferSource();
             source.buffer = cached.buffer;
@@ -613,7 +679,7 @@ export class SF2Player {
     let anyPlayed = false;
 
     for (const zone of zonesToPlay) {
-      const cached = this._getOrCreateAudioBuffer(sf2Id, zone.sampleIndex);
+      const cached = this._getOrCreateAudioBuffer(sfData.id, zone.sampleIndex);
       if (!cached || !cached.buffer) continue;
 
       const buffer = cached.buffer;
