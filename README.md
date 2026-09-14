@@ -6,15 +6,20 @@
 > *Original: Desenvolvido em Processing (Sandro Benigno, Fevereiro/2021)*  
 > *Arquitetura Web Modular & Python Bridge (Sandro Benigno, Setembro/2026)*
 
-
 Experimente a [Versão Online](https://sandrobenigno.github.io/Sound_Of_Life/)
+
 ---
 
 ## 📖 1. Visão Geral do Projeto
 
 O **SOUND OF LIFE (SOL)** é um instrumento e controlador generativo visual que une matemática, dinâmica de sistemas complexos e música. Ele mapeia o autômato celular do **Jogo da Vida de Conway (Game of Life)** sobre uma grade geométrica de **coordenadas polares (estilo RADAR circular)**.
 
-Nesta versão **Web Modular**, o sistema foi completamente reformulado sob uma arquitetura desacoplada em 3 camadas independentes, garantindo que o núcleo visual/matemático seja 100% agnóstico à síntese sonora, comunicando-se via **WebSockets**, **Web Audio API** interna e uma **Bridge OSC em Python** para integração com DAWs e sintetizadores externos.
+Nesta versão **Web Modular**, o sistema foi desenvolvido sob uma arquitetura desacoplada em 3 camadas independentes, garantindo que o núcleo visual/matemático seja 100% agnóstico à síntese sonora. O projeto conta com:
+- **Interface Totalmente Responsiva**: Design cyberpunk modular com suporte completo a dispositivos móveis (smartphones/tablets), drawer menu retrátil e interação por toque (*Touch/Drag*).
+- **Motor de Áudio Híbrido**: Síntese polifônica nativa via Web Audio API + Reprodutor SoundFont 2 (SF2) hierárquico com cache sob demanda (*lazy decoding*) compatível com soundfonts de grande porte (ex: *FluidR3 GM*).
+- **Escalas Customizadas Flexíveis**: Crie sequências melódicas personalizadas digitando notas diretamente (`C3 F#3 Bb4...`).
+- **Gerenciador de Esquemas Inteligente**: Exportação/importação `.sol.json` com identificadores semânticos de instrumentos e detecção/reconexão automática de SoundFonts.
+- **Ponte de Comunicação Externa**: Suporte a WebSockets e transmissor OSC UDP em Python para controlar DAWs e sintetizadores externos (Ableton Live, Reaper, Max/MSP, PureData, VCV Rack).
 
 ---
 
@@ -26,39 +31,41 @@ Nesta versão **Web Modular**, o sistema foi completamente reformulado sob uma a
 │  • Autômato Celular Conway B3/S23 em topologia toroidal                          │
 │  • Grade Polar: 72 fatias radiais (5°) x 24 trilhas concêntricas                 │
 │  • Feixe de Varredura (Scanner) com rotação contínua e rastro fosforescente      │
-│  • Interação direta: desenhar e apagar células com mouse/touch                   │
-│  • 100% Agnóstico de áudio — Apenas gerador de eventos                           │
+│  • Interação direta: desenhar e apagar células com Mouse ou Touch                │
+│  • 100% Agnóstico de áudio — Emissor puro de eventos de disparo                  │
 └───────────────────────────────────┬──────────────────────────────────────────────┘
                                     │
                                     │  Eventos Abstratos (JSON / WebSockets)
                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                        MUSICAL SURFACE                                           │
-│  • Rack dinâmico de pistas (Classe Track — até 24 pistas verticais)              │
-│  • Mapeamento flexível para os 24 pontos de entrada do SOL                       │
-│  • Listas Circulares de Notas e Catálogo de Escalas Musicais                     │
+│  • Rack dinâmico de pistas (Classe Track — até 24 pistas em cards modulares)     │
+│  • Duplicação de pistas adjacente (clonagem rápida logo abaixo da pista de origem)│
+│  • Catálogo de Escalas (Pentatônicas, Modais, Blues, Orientais, Microtonais)     │
+│  • Escalas Personalizadas: entrada direta de notas em texto (ex: C3 D#3 G3 Bb3)   │
 │  • Modos de Avanço: Sequencial (➡️/⬅️), Random (🎲), Pêndulo (↔️), Fatia (🎯)  │
-│  • Controles de Dinâmica: Velocity, Duração de Gate (ms), Probabilidade          │
-│  • Gerenciador de Esquemas: Salvar/Carregar (.sol.json) e Reset de Fábrica      │
+│  • Controles de Dinâmica: Velocity, Gate (ms), Probabilidade, Mute, Solo         │
+│  • Schema Manager: Identificadores semânticos de SF2 e aviso de arquivos faltantes│
 └───────────────────────────────────┬──────────────────────────────────────────────┘
                                     │
                                     │  Comandos de Disparo de Notas
                                     ▼
-┌────────────────────────────────────────────────────────────────────────────────┐
-│                          SOUND ENGINE                                          │
-│  • Sintetizador Polifônico Nativo Web Audio (Saw, Square, Sine, FM...)         │
-│  • SF2 Player (Piano, Rhodes, Marimba, Celesta, Strings, Slap Bass...)         │
-│  • Carregador dinâmico de arquivos SoundFont (.sf2) locais                     │
-│  • Mixer Master com Limitador Anti-Clipping e Efeito Delay/Reverb              │
-└────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                          SOUND ENGINE                                            │
+│  • Sintetizador Polifônico Nativo Web Audio (Saw, Square, Sine, Pluck, FM Bell)  │
+│  • SF2 Player Hierárquico (Preset -> Preset Zones -> Instrument -> Samples)      │
+│  • Suporte General MIDI multi-preset com Lazy Decoding Cache de amostras         │
+│  • Carregamento dinâmico e reconexão automática de soundfonts externos (.sf2)    │
+│  • Mixer Master com Limitador Anti-Clipping e Efeito Delay/Reverb Estéreo        │
+└──────────────────────────────────────────────────────────────────────────────────┘
                                     ▲
                                     │  Opcional (Ponte Externa)
-┌───────────────────────────────────┴────────────────────────────────────────────┐
-│                        PYTHON OSC BRIDGE                                       │
-│  • Escuta eventos de varredura via WebSocket (porta 8765)                      │
-│  • Transmite pacotes OSC UDP para 127.0.0.1:5500 na rota /sol                  │
-│  • Compatível com Ableton Live, Reaper, Max/MSP, PureData, SuperCollider       │
-└────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────┴──────────────────────────────────────────────┐
+│                        PYTHON OSC BRIDGE                                         │
+│  • Escuta eventos de varredura via WebSocket (porta 8765)                        │
+│  • Transmite pacotes OSC UDP para 127.0.0.1:5500 na rota /sol                    │
+│  • Compatível com Ableton Live, Reaper, Max/MSP, PureData, SuperCollider         │
+└──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -91,22 +98,22 @@ SoundOfLife_WEB/
 │   │   ├── Track.js                 # Classe Track individual (regras, fonte, escala, modo)
 │   │   ├── TrackManager.js          # Gerenciador do rack de até 24 pistas de áudio
 │   │   ├── CircularList.js          # Estrutura de lista circular com modos de cursor
-│   │   ├── ScaleCatalog.js          # Teoria musical, gerador de escalas e conversor de notas
-│   │   └── SchemaManager.js         # Exportação/Importação JSON e Esquema Padrão
+│   │   ├── ScaleCatalog.js          # Catálogo de escalas, parser customizado e conversor
+│   │   └── SchemaManager.js         # Exportação/Importação JSON, metadados e fábrica
 │   │
 │   ├── audio/                       # Módulo 3: Sound Engine (Síntese & Amostras)
 │   │   ├── WebAudioSynth.js         # Sintetizador polifônico com envelopes ADSR e filtros
-│   │   ├── SF2Player.js             # Reprodutor de SoundFonts e instrumentos acústicos
+│   │   ├── SF2Player.js             # Reprodutor hierárquico SoundFont 2 com Lazy Cache
 │   │   └── SoundEngine.js           # Mixer master, limiter anti-clipping e reverb/delay
 │   │
 │   ├── ui/                          # Componentes de Interface do Usuário
-│   │   ├── RadarCanvas.js           # Interação com o radar (mouse, arrasto, atalhos)
-│   │   ├── TrackListView.js         # Rack vertical de pistas com LEDs em tempo real
-│   │   ├── TransportBar.js          # Barra de transporte (Play, FPS, Volume, Status)
-│   │   └── SchemaControls.js        # Painel de salvar/carregar esquemas e arquivos .sf2
+│   │   ├── RadarCanvas.js           # Interação com o radar (mouse, touch, arrasto)
+│   │   ├── TrackListView.js         # Rack vertical de pistas com cards e LEDs
+│   │   ├── TransportBar.js          # Barra de transporte, FPS, Volume, OSC e Mobile Drawer
+│   │   └── SchemaControls.js        # Painel de esquemas, banner de avisos e upload de .sf2
 │   │
-│   ├── main.js                      # Bootstrap: inicializa e conecta todos os módulos
-│   └── style.css                    # Estilo moderno Cyberpunk / Studio Rack escuro
+│   ├── main.js                      # Bootstrap: inicializa e orquestra todos os módulos
+│   └── style.css                    # Estilo Cyberpunk responsivo (Desktop & Mobile)
 │
 ├── index.html                       # Ponto de entrada HTML5 da aplicação
 └── README.md                        # Documentação completa
@@ -117,17 +124,17 @@ SoundOfLife_WEB/
 ## ⚙️ 4. Detalhamento dos Módulos
 
 ### 1. `SOL Core` (`src/core/`)
-- **`GameOfLife.js`**: Matriz de $72 \text{ fatias} \times 24 \text{ trilhas}$. Aplica conexão toroidal nas bordas radiais e angulares (`% cols`, `% rows`). Células vivas com 2 ou 3 vizinhos sobrevivem; células mortas com 3 vizinhos nascem; demais morrem.
-- **`PolarGeometry.js`**: Converte coordenadas do ponteiro do mouse $(X, Y)$ para a célula correspondente $(\text{coluna}, \text{linha})$ através de `Math.atan2` e distância euclidiana.
-- **`RadarRenderer.js`**: Desenho no HTML5 Canvas utilizando efeito de *fading background* (`rgba(0, 0, 0, 0.15)`) para recriar o feixe fosforescente do Processing original, núcleo central com a logo `sol.png`, células ativas com brilho estocástico e monitor de LEDs dos 24 canais no canto inferior esquerdo.
-- **`SolBroadcaster.js`**: Emite eventos `radar_step` contendo o ângulo atual, índice da fatia e o estado booleano dos 24 canais, tanto para a camada JavaScript interna quanto para o servidor WebSocket (`ws://127.0.0.1:8765`).
+- **`GameOfLife.js`**: Matriz toroidal de $72 \text{ fatias} \times 24 \text{ trilhas}$. Aplica conexão contínua nas bordas radiais e angulares. Células vivas com 2 ou 3 vizinhos sobrevivem; células mortas com 3 vizinhos nascem; demais morrem.
+- **`PolarGeometry.js`**: Converte coordenadas de tela $(X, Y)$ para a célula correspondente $(\text{coluna}, \text{linha})$ através de `Math.atan2` e distância euclidiana normalizada.
+- **`RadarRenderer.js`**: Desenho no Canvas HTML5 com efeito de rastro fosforescente (*fading background*), núcleo central estilizado com `sol.png`, células ativas com pulso estocástico e monitor de LEDs dos 24 canais.
+- **`SolBroadcaster.js`**: Emite eventos `radar_step` contendo o ângulo atual, índice da fatia e o estado booleano dos 24 canais para a camada JavaScript interna e para o WebSocket (`ws://127.0.0.1:8765`).
 - **`SolCore.js`**: Controla o clock e a rotação do feixe (0° a 359°), acionando a leitura de fatias e nova geração da vida a cada 5° de giro.
 
 ### 2. `Musical Surface` (`src/surface/`)
 - **Classe `Track`**: Modela uma pista individual com:
   - `inputChannel`: Ponto de entrada do SOL que dispara a pista (0 a 23).
-  - `soundSource`: Timbre associado (Sintetizador ou SF2).
-  - `circularList`: Lista circular de notas.
+  - `soundSource`: Timbre associado (Sintetizador nativo ou instrumento SF2 semântico).
+  - `scaleName` & `customNotesStr`: Escala selecionada ou sequência de notas manuais (`custom`).
   - `advanceMode`: Modo como o cursor percorre as notas a cada disparo:
     - *Sequential Forward (`seq_fwd`)*: Avança 1 nota para frente.
     - *Sequential Backward (`seq_bwd`)*: Retrocede 1 nota.
@@ -138,13 +145,23 @@ SoundOfLife_WEB/
   - `duration`: Duração do gate em milissegundos (50ms a 1000ms).
   - `probability`: Chance percentual de tocar a nota (0% a 100%).
   - `mute` / `solo`: Controles individuais de mixagem.
-- **`TrackManager.js`**: Permite adicionar até 24 pistas dinamicamente (de cima para baixo). Informa quais canais estão livres e mapeados.
-- **`ScaleCatalog.js`**: Catálogo completo de escalas musicais (Pentatônica Menor/Maior, Eólio/Menor Natural, Jônio/Maior, Dórico, Frígio, Lídio, Mixolídio, Menor Harmônica, Blues, Hirajoshi, Insen, Árabe, Tons Inteiros e Cromática).
-- **`SchemaManager.js`**: Serializa o estado das pistas em arquivos `.sol.json` para download, importa arquivos JSON e gerencia a restauração do **Esquema Padrão de Fábrica**.
+- **`TrackManager.js`**: Permite gerenciar até 24 pistas dinamicamente. Suporta duplicação de pista adjacente (inserindo o clone exatamente abaixo da pista original).
+- **`ScaleCatalog.js`**:
+  - Catálogo amplo de escalas: Pentatônica Menor/Maior, Eólio, Jônio, Dórico, Frígio, Lídio, Mixolídio, Menor Harmônica, Blues, Hirajoshi, Insen, Árabe, Tons Inteiros e Cromática.
+  - **Escala Personalizada (`custom`)**: Permite que o usuário defina suas próprias notas em texto livre (ex: `C3 F#3 Bb4 G#5`). Faz o parsing tolerante a espaços, vírgulas e sustenidos/bemóis enharmônicos.
+- **`SchemaManager.js`**:
+  - Serializa e desserializa o estado completo em arquivos `.sol.json`.
+  - Exporta metadados de dependência (`requiredSoundFonts`).
+  - Detecta soundfonts não carregados ao importar um esquema e gera avisos contextuais na UI.
+  - Reconecta pistas automaticamente quando o usuário carrega o `.sf2` faltante.
 
 ### 3. `Sound Engine` (`src/audio/`)
 - **`WebAudioSynth.js`**: Sintetizador nativo com envelopes ADSR exponenciais limpos (sem estalos), osciladores *Sawtooth*, *Square*, *Triangle*, *Sine*, *Synth Pluck* (filtro rápido descendente) e *FM Bell* (modulação de frequência metálica).
-- **`SF2Player.js`**: Timbres acústicos e modelados (Grand Piano, Rhodes Electric Piano, Marimba/Mallet, Celesta, Pizzicato Strings, Slap Bass, Synth Brass) e suporte para carregar arquivos `.sf2` externos através do botão da interface.
+- **`SF2Player.js`**:
+  - **Parser Hierárquico Completo**: Mapeia corretamente a árvore SF2: $\text{Preset} \rightarrow \text{Preset Zones} \rightarrow \text{Instrument} \rightarrow \text{Instrument Zones} \rightarrow \text{Samples}$.
+  - **General MIDI Multi-Preset**: Suporte a SoundFonts com múltiplos bancos e presets (ex: *FluidR3 GM*), isolando instrumentos individuais sem misturar timbres na mesma pista.
+  - **Lazy Decoding Cache**: As amostras de áudio são convertidas sob demanda para `AudioBuffer`, economizando memória RAM e permitindo carregar SoundFonts de centenas de megabytes instantaneamente.
+  - **Identificadores Semânticos**: Formato `sf2custom:<NomeArquivo>:<Bank>:<Preset>` garantindo compatibilidade duradoura em esquemas salvos.
 - **`SoundEngine.js`**: Mixer central com limitador estéreo (`DynamicsCompressor`) que evita saturação/clipping mesmo quando 24 vozes soam juntas, além de linha de atraso/reverb estéreo.
 
 ### 4. `Python Bridge & Servidor Integrado` (`bridge/`)
@@ -152,7 +169,7 @@ SoundOfLife_WEB/
   - **Servidor Web HTTP**: Disponibiliza a interface em `http://localhost:8080`.
   - **Servidor WebSocket**: Escuta eventos do SOL na porta `8765`.
   - **Transmissor OSC UDP**: Envia mensagens `/sol` na porta `5500` (padrão do Processing original).
-- **`bridge/sol_bridge.py`**: Ponte independente WebSocket -> OSC para quem deseja rodar o frontend em outro servidor.
+- **`bridge/sol_bridge.py`**: Ponte independente WebSocket -> OSC para quem deseja rodar o frontend em outro servidor estático.
 
 ---
 
@@ -187,9 +204,14 @@ Se preferir usar seu próprio servidor estático (como VS Code Live Server ou `p
 
 ---
 
-## 🎛️ 6. Guia de Operação & Atalhos
+## 🎛️ 6. Guia de Operação, Atalhos & Mobile
 
-### 🖱️ Interação com o Radar
+### 📱 Suporte Mobile & Layout Responsivo
+- **Drawer Menu (☰)**: Em telas menores ou orientação vertical, o painel de esquemas e controles de áudio fica acessível através do botão de menu no topo direito.
+- **Rack Modular**: As pistas se organizam em cards responsivos com agrupamentos visuais de canal, fonte sonora, escala, dinâmica e mixagem.
+- **Toque no Radar**: Suporte completo a gestos de toque no Canvas (desenhe e apague células deslizando o dedo).
+
+### 🖱️ Interação com o Radar (Desktop)
 - **Botão Esquerdo do Mouse (Clique e Arraste)**: Desenha ou apaga células vivas diretamente na grade circular do radar.
 - **Detecção Inteligente**: O primeiro clique define se o arrasto irá pintar ou apagar células.
 
@@ -203,13 +225,13 @@ Se preferir usar seu próprio servidor estático (como VS Code Live Server ou `p
 
 ---
 
-## 💾 7. Gerenciamento de Esquemas e Presets
+## 💾 7. Gerenciamento de Esquemas e SoundFonts (.SF2)
 
-No painel superior **ESQUEMAS & PRESETS**:
-1. **`⬇️ Salvar Arquivo`**: Gera e baixa um arquivo `.sol.json` contendo todas as pistas configuradas, instrumentos, escalas e velocidades.
-2. **`⬆️ Carregar Arquivo`**: Abre uma janela para selecionar e aplicar qualquer arquivo `.sol.json` salvo previamente.
-3. **`🔄 Restaurar Fábrica`**: Restaura o esquema padrão inicial de fábrica (5 pistas equilibradas entre Sub Bass, Bassline, Pluck, Arp e Chime).
-4. **`📂 Carregar .SF2`**: Permite carregar seus próprios arquivos SoundFont `.sf2` locais para uso nas pistas.
+No painel superior **ESQUEMAS & PRESETS** (ou no Drawer no celular):
+1. **`⬇️ Salvar Arquivo`**: Gera e baixa um arquivo `.sol.json` contendo a configuração completa de todas as pistas, escalas personalizadas e referências semânticas a instrumentos.
+2. **`⬆️ Carregar Arquivo`**: Abre uma janela para selecionar e aplicar qualquer arquivo `.sol.json`. Caso o esquema utilize soundfonts externos ainda não carregados na sessão, um banner de aviso identificará os arquivos necessários (`⚠️ SoundFonts necessários`).
+3. **`📂 Carregar .SF2`**: Permite carregar seus próprios arquivos SoundFont `.sf2` locais (ex: *FluidR3 GM*, *GeneralUser GS*, pianos ou sintetizadores SF2). Ao carregar o arquivo, o sistema reconecta automaticamente todas as pistas pendentes.
+4. **`🔄 Restaurar Fábrica`**: Restaura o esquema padrão inicial de fábrica (5 pistas balanceadas entre Sub Bass, Bassline, Pluck, Arp e Chime).
 
 ---
 
@@ -244,3 +266,4 @@ Consulte o arquivo [`LICENSE`](LICENSE) para obter o texto completo da licença.
 
 Desenvolvido por **Sandro Benigno** (2021, 2026).  
 Código aberto para fins educacionais, experimentação artística e desenvolvimento musical generativo.
+
