@@ -213,6 +213,7 @@ class SF2Parser {
       velRange: [0, 127],
       hasKeyRange: false,
       hasVelRange: false,
+      coarseTune: 0,
       fineTune: 0,
       attenuation: 0
     };
@@ -234,12 +235,16 @@ class SF2Parser {
           zone.velRange = [gen.amount & 0xFF, (gen.amount >> 8) & 0xFF];
           zone.hasVelRange = true;
           break;
+        case 50: // coarseTune (semitones)
+          zone.coarseTune = gen.amount;
+          break;
         case 51: // overridingRootKey
+        case 58:
           if (gen.amount >= 0 && gen.amount <= 127) {
             zone.rootKey = gen.amount;
           }
           break;
-        case 52: // fineTune
+        case 52: // fineTune (cents)
           zone.fineTune = gen.amount;
           break;
         case 54: // sampleModes
@@ -248,7 +253,8 @@ class SF2Parser {
         case 56: // scaleTuning
           zone.scaleTuning = gen.amount;
           break;
-        case 8: // initialAttenuation
+        case 48: // initialAttenuation (centibels)
+        case 8:
           zone.attenuation = gen.amount;
           break;
       }
@@ -292,8 +298,11 @@ class SF2Parser {
         if (globalPZone) {
           if (!pZone.hasKeyRange && globalPZone.hasKeyRange) pZone.keyRange = [...globalPZone.keyRange];
           if (!pZone.hasVelRange && globalPZone.hasVelRange) pZone.velRange = [...globalPZone.velRange];
+          if (pZone.coarseTune === 0 && globalPZone.coarseTune !== 0) pZone.coarseTune = globalPZone.coarseTune;
           if (pZone.fineTune === 0 && globalPZone.fineTune !== 0) pZone.fineTune = globalPZone.fineTune;
           if (pZone.attenuation === 0 && globalPZone.attenuation !== 0) pZone.attenuation = globalPZone.attenuation;
+          if (pZone.rootKey === undefined && globalPZone.rootKey !== undefined) pZone.rootKey = globalPZone.rootKey;
+          if (pZone.scaleTuning === undefined && globalPZone.scaleTuning !== undefined) pZone.scaleTuning = globalPZone.scaleTuning;
         }
 
         const instIdx = pZone.instrumentIndex;
@@ -321,10 +330,12 @@ class SF2Parser {
             if (globalIZone) {
               if (!iZone.hasKeyRange && globalIZone.hasKeyRange) iZone.keyRange = [...globalIZone.keyRange];
               if (!iZone.hasVelRange && globalIZone.hasVelRange) iZone.velRange = [...globalIZone.velRange];
+              if (iZone.coarseTune === 0 && globalIZone.coarseTune !== 0) iZone.coarseTune = globalIZone.coarseTune;
               if (iZone.fineTune === 0 && globalIZone.fineTune !== 0) iZone.fineTune = globalIZone.fineTune;
               if (iZone.attenuation === 0 && globalIZone.attenuation !== 0) iZone.attenuation = globalIZone.attenuation;
               if (iZone.rootKey === undefined && globalIZone.rootKey !== undefined) iZone.rootKey = globalIZone.rootKey;
               if (iZone.sampleModes === undefined && globalIZone.sampleModes !== undefined) iZone.sampleModes = globalIZone.sampleModes;
+              if (iZone.scaleTuning === undefined && globalIZone.scaleTuning !== undefined) iZone.scaleTuning = globalIZone.scaleTuning;
             }
 
             const smpIdx = iZone.sampleIndex;
@@ -345,6 +356,7 @@ class SF2Parser {
                 ? iZone.rootKey
                 : ((pZone.rootKey !== undefined) ? pZone.rootKey : (smp.originalPitch || 60));
 
+              const coarseTune = (iZone.coarseTune || 0) + (pZone.coarseTune || 0);
               const fineTune = (iZone.fineTune || 0) + (pZone.fineTune || 0) + (smp.pitchCorrection || 0);
 
               compiledZones.push({
@@ -354,8 +366,9 @@ class SF2Parser {
                 sampleName: smp.name,
                 sample: smp,
                 rootKey,
+                coarseTune,
                 fineTune,
-                scaleTuning: iZone.scaleTuning ?? 100,
+                scaleTuning: iZone.scaleTuning ?? pZone.scaleTuning ?? 100,
                 sampleModes: iZone.sampleModes ?? 0,
                 attenuation: (iZone.attenuation || 0) + (pZone.attenuation || 0)
               });
@@ -690,10 +703,11 @@ export class SF2Player {
 
       // Pitch shifting preciso com afinação do SoundFont e da zona
       const rootKey = zone.rootKey ?? smp.originalPitch ?? 60;
+      const coarseTune = zone.coarseTune || 0;
       const fineTune = zone.fineTune || 0;
       const scaleTuning = (zone.scaleTuning ?? 100) / 100;
-      const semitoneOffset = (midiNote - rootKey) * scaleTuning + (fineTune / 100);
-      const playbackRate = Math.max(0.01, Math.pow(2, semitoneOffset / 12));
+      const semitoneOffset = (midiNote - rootKey) * scaleTuning + coarseTune + (fineTune / 100);
+      const playbackRate = Math.max(0.001, Math.pow(2, semitoneOffset / 12));
       source.playbackRate.setValueAtTime(playbackRate, now);
 
       // Looping se habilitado na amostra
