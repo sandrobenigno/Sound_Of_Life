@@ -61,6 +61,10 @@ export class RadarCanvas {
         this.solCore.togglePause();
       } else if (key === 'R') {
         this.solCore.randomize();
+      } else if (key === 'A') {
+        this.solCore.toggleAutoRand();
+      } else if (key === 'O') {
+        this.solCore.broadcaster.toggleBridgeEnabled();
       }
     });
   }

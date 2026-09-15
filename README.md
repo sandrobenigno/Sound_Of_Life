@@ -220,6 +220,8 @@ Se preferir usar seu próprio servidor estático (como VS Code Live Server ou `p
 |---|---|
 | <kbd>P</kbd> ou <kbd>Espaço</kbd> | **Pausar / Retomar** a evolução das regras do Game of Life |
 | <kbd>R</kbd> | **Randomizar** as células do radar mantendo a posição do feixe |
+| <kbd>A</kbd> | **AutoRand**: Ativa / Desativa a randomização automática a cada 90° de varredura |
+| <kbd>O</kbd> | **OSC UDP**: Ativa / Desativa a conexão com a ponte WebSocket / transmissor OSC |
 | <kbd>C</kbd> | **Limpar** (*Clear*) todas as células do tabuleiro |
 | <kbd>I</kbd> | **Reiniciar** (*Initialize*) o tabuleiro aleatoriamente e voltar o feixe ao grau 0 |
 

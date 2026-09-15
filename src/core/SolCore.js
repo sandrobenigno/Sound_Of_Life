@@ -43,6 +43,11 @@ export class SolCore {
     this.broadcaster.emit('autorand_change', { enabled: this.autoRand });
   }
 
+  toggleAutoRand() {
+    this.setAutoRand(!this.autoRand);
+    return this.autoRand;
+  }
+
   init(randomize = true) {
     this.gol.init(randomize);
     this.updateTrackStatesAtAngle(this.frame);

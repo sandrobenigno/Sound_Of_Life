@@ -34,12 +34,12 @@ export class TransportBar {
 
         <!-- Toggles: AutoRand & OSC Bridge -->
         <div class="transport-group toggles-group">
-          <label class="btn btn-autorand" title="AutoRand: Randomiza o tabuleiro automaticamente a cada incremento de 90° de varredura do radar (0°, 90°, 180°, 270°)">
+          <label class="btn btn-autorand" title="AutoRand (A): Randomiza o tabuleiro automaticamente a cada incremento de 90° de varredura do radar (0°, 90°, 180°, 270°)">
             <input type="checkbox" id="chkAutoRand" ${this.solCore.autoRand ? 'checked' : ''}>
             <span>⚡ AutoRand (90°)</span>
           </label>
 
-          <label class="btn btn-bridge" title="Conectar à ponte WebSocket local para envio de pacotes OSC UDP (PureData, Ableton, Max, etc.)">
+          <label class="btn btn-bridge" title="OSC UDP (O): Conectar à ponte WebSocket local para envio de pacotes OSC UDP (PureData, Ableton, Max, etc.)">
             <input type="checkbox" id="chkBridgeOsc" ${this.broadcaster.wsEnabled ? 'checked' : ''}>
             <span>📡 OSC UDP</span>
           </label>
@@ -136,16 +136,19 @@ export class TransportBar {
       if (status === 'connected' || connected) {
         oscStatusDot.innerText = '🟢 Ativo';
         oscStatusDot.style.color = '#00d26a';
-        if (!chkBridgeOsc.checked) chkBridgeOsc.checked = true;
+        chkBridgeOsc.checked = true;
       } else if (status === 'connecting') {
         oscStatusDot.innerText = '🟡 Conectando...';
         oscStatusDot.style.color = '#e3b341';
+        chkBridgeOsc.checked = true;
       } else if (status === 'disconnected') {
         oscStatusDot.innerText = '🔴 Off';
         oscStatusDot.style.color = '#f85149';
+        chkBridgeOsc.checked = this.broadcaster.wsEnabled;
       } else if (status === 'error') {
         oscStatusDot.innerText = '🔴 Erro';
         oscStatusDot.style.color = '#f85149';
+        chkBridgeOsc.checked = this.broadcaster.wsEnabled;
       } else {
         oscStatusDot.innerText = '⚪ Off';
         oscStatusDot.style.color = 'var(--text-dim)';

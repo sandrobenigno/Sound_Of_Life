@@ -63,6 +63,11 @@ export class SolBroadcaster {
     this.connect();
   }
 
+  toggleBridgeEnabled(url = this.wsUrl) {
+    this.setBridgeEnabled(!this.wsEnabled, url);
+    return this.wsEnabled;
+  }
+
   connect(url = this.wsUrl) {
     this.wsUrl = url;
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
