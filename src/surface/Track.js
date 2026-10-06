@@ -11,8 +11,22 @@ let trackIdCounter = 1;
 export class Track {
   constructor(config = {}) {
     this.id = config.id || `track_${Date.now()}_${trackIdCounter++}`;
-    this.name = config.name || `Pista ${config.inputChannel !== undefined ? config.inputChannel + 1 : 1}`;
-    this.inputChannel = config.inputChannel !== undefined ? config.inputChannel : 0; // 0 a 23
+
+    // Canais de entrada do SOL (0 a 23)
+    if (Array.isArray(config.inputChannels) && config.inputChannels.length > 0) {
+      this.inputChannels = Array.from(new Set(config.inputChannels.map(Number)))
+        .filter(c => !isNaN(c) && c >= 0 && c < 24)
+        .sort((a, b) => a - b);
+      if (this.inputChannels.length === 0) this.inputChannels = [0];
+    } else if (config.inputChannel !== undefined) {
+      const ch = parseInt(config.inputChannel, 10);
+      this.inputChannels = (!isNaN(ch) && ch >= 0 && ch < 24) ? [ch] : [0];
+    } else {
+      this.inputChannels = [0];
+    }
+
+    const firstCh = this.inputChannels[0];
+    this.name = config.name || `Pista ${firstCh + 1}`;
 
     // Fonte Sonora (Synth interno ou SoundFont SF2)
     this.soundSource = config.soundSource || 'synth:saw'; // synth:sine, synth:triangle, synth:saw, synth:square, synth:pluck, synth:bell, sf2:0, sf2:1, etc.
@@ -48,6 +62,55 @@ export class Track {
     this.isTriggered = false;
     this.lastTriggerNote = null;
     this.lastTriggerTime = 0;
+    this.lastTriggerChannel = firstCh;
+  }
+
+  get inputChannel() {
+    return this.inputChannels[0] ?? 0;
+  }
+
+  set inputChannel(val) {
+    const ch = parseInt(val, 10);
+    if (!isNaN(ch) && ch >= 0 && ch < 24) {
+      this.inputChannels = [ch];
+    }
+  }
+
+  hasChannel(channelIndex) {
+    return this.inputChannels.includes(channelIndex);
+  }
+
+  toggleChannel(channelIndex) {
+    const ch = parseInt(channelIndex, 10);
+    if (isNaN(ch) || ch < 0 || ch >= 24) return;
+    if (this.inputChannels.includes(ch)) {
+      if (this.inputChannels.length > 1) {
+        this.inputChannels = this.inputChannels.filter(c => c !== ch);
+      }
+    } else {
+      this.inputChannels = [...this.inputChannels, ch].sort((a, b) => a - b);
+    }
+  }
+
+  setInputChannels(channelsArray) {
+    if (!Array.isArray(channelsArray) || channelsArray.length === 0) {
+      this.inputChannels = [0];
+      return;
+    }
+    const clean = Array.from(new Set(channelsArray.map(Number)))
+      .filter(c => !isNaN(c) && c >= 0 && c < 24)
+      .sort((a, b) => a - b);
+    this.inputChannels = clean.length > 0 ? clean : [0];
+  }
+
+  getChannelSummary() {
+    if (!this.inputChannels || this.inputChannels.length === 0) return 'Nenhum';
+    if (this.inputChannels.length === 24) return 'Todos (24)';
+    if (this.inputChannels.length === 1) return `CH ${this.inputChannels[0] + 1}`;
+    if (this.inputChannels.length <= 3) {
+      return `CH ${this.inputChannels.map(c => c + 1).join(', ')}`;
+    }
+    return `${this.inputChannels.length} Canais (${this.inputChannels.slice(0, 2).map(c => c + 1).join(',') }...)`;
   }
 
   rebuildNotesFromScale() {
@@ -76,7 +139,7 @@ export class Track {
   /**
    * Processa um gatilho recebido do SOL Core
    */
-  processTrigger(eventData, soundEngine, anySoloActive = false) {
+  processTrigger(eventData, soundEngine, anySoloActive = false, triggeringChannel = null) {
     // 1. Verificações de Mute / Solo
     if (this.mute) return null;
     if (anySoloActive && !this.solo) return null;
@@ -91,13 +154,14 @@ export class Track {
     if (!note) return null;
 
     // 4. Cálculo da Velocity
+    const activeCh = triggeringChannel !== null ? triggeringChannel : this.inputChannel;
     let vel = this.velocity;
     if (this.velocityMode === 'random_range') {
       const [minV, maxV] = this.velocityRange;
       vel = Math.floor(minV + Math.random() * (maxV - minV));
     } else if (this.velocityMode === 'radius_scaled') {
-      // 24 canais: quanto mais externo, maior ou menor
-      vel = Math.floor(40 + (this.inputChannel / 23) * 80);
+      // 24 canais: quanto mais externo, maior
+      vel = Math.floor(40 + (activeCh / 23) * 80);
     }
     vel = Math.max(1, Math.min(127, vel));
 
@@ -109,7 +173,7 @@ export class Track {
         duration: this.duration,
         soundSource: this.soundSource,
         gain: this.gain,
-        channel: this.inputChannel
+        channel: activeCh
       });
     }
 
@@ -117,10 +181,12 @@ export class Track {
     this.isTriggered = true;
     this.lastTriggerNote = note;
     this.lastTriggerTime = Date.now();
+    this.lastTriggerChannel = activeCh;
 
     return {
       trackId: this.id,
-      inputChannel: this.inputChannel,
+      inputChannel: activeCh,
+      inputChannels: [...this.inputChannels],
       note,
       velocity: vel,
       duration: this.duration
@@ -132,6 +198,7 @@ export class Track {
       id: this.id,
       name: this.name,
       inputChannel: this.inputChannel,
+      inputChannels: [...this.inputChannels],
       soundSource: this.soundSource,
       rootNote: this.rootNote,
       rootOctave: this.rootOctave,

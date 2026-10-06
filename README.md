@@ -132,7 +132,7 @@ SoundOfLife_WEB/
 
 ### 2. `Musical Surface` (`src/surface/`)
 - **Classe `Track`**: Modela uma pista individual com:
-  - `inputChannel`: Ponto de entrada do SOL que dispara a pista (0 a 23).
+  - `inputChannels`: Pontos de entrada do SOL que disparam a pista (permite selecionar múltiplos canais de 0 a 23 com matriz de seleção e presets rápidos como *Pares*, *Ímpares*, *Zonas/Quadrantes* ou *Todos*).
   - `soundSource`: Timbre associado (Sintetizador nativo ou instrumento SF2 semântico).
   - `scaleName` & `customNotesStr`: Escala selecionada ou sequência de notas manuais (`custom`).
   - `advanceMode`: Modo como o cursor percorre as notas a cada disparo:

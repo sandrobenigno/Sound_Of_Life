@@ -681,10 +681,159 @@ main {
   width: 120px;
 }
 
-.track-channel-select {
-  width: 125px;
+/* Multi-Channel Toggle & Button */
+.btn-channel-toggle {
+  background: var(--bg-input);
   color: var(--color-cyan);
+  border: 1px solid var(--border-dim);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
   font-weight: bold;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 115px;
+  transition: all 0.15s ease;
+}
+
+.btn-channel-toggle:hover {
+  border-color: var(--border-cyan);
+  box-shadow: 0 0 6px rgba(0, 255, 255, 0.25);
+  background: rgba(0, 255, 255, 0.08);
+}
+
+.btn-channel-toggle.active {
+  border-color: var(--color-cyan);
+  background: rgba(0, 255, 255, 0.15);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+}
+
+.btn-ch-arrow {
+  font-size: 9px;
+  transition: transform 0.2s ease;
+}
+
+.btn-channel-toggle.active .btn-ch-arrow {
+  transform: rotate(180deg);
+}
+
+/* Matrix Drawer de Múltiplos Canais */
+.track-channel-matrix-drawer {
+  width: 100%;
+  flex-basis: 100%;
+  order: 100;
+  background: rgba(6, 14, 22, 0.98);
+  border: 1px solid var(--border-cyan);
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+  animation: fadeInDrawer 0.15s ease-out;
+}
+
+@keyframes fadeInDrawer {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.channel-matrix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.matrix-title {
+  font-size: 9px;
+  font-weight: bold;
+  color: var(--color-cyan);
+  letter-spacing: 0.5px;
+}
+
+.matrix-presets {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.btn-matrix-preset {
+  background: #11222e;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  color: var(--color-cyan);
+  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.btn-matrix-preset:hover {
+  background: rgba(0, 255, 255, 0.2);
+  border-color: var(--color-cyan);
+  color: #fff;
+}
+
+.btn-matrix-preset.btn-matrix-clear {
+  border-color: rgba(255, 77, 77, 0.4);
+  color: var(--color-red);
+}
+
+.btn-matrix-preset.btn-matrix-clear:hover {
+  background: rgba(255, 77, 77, 0.2);
+  border-color: var(--color-red);
+  color: #fff;
+}
+
+.channel-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 4px;
+  width: 100%;
+}
+
+.btn-matrix-chip {
+  background: #0d1b2a;
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  color: var(--text-dim);
+  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-weight: bold;
+  padding: 4px 0;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: center;
+  user-select: none;
+  transition: all 0.1s ease;
+}
+
+.btn-matrix-chip:hover {
+  border-color: var(--color-cyan);
+  color: #fff;
+}
+
+.btn-matrix-chip.is-selected {
+  background: var(--color-green);
+  color: #000;
+  border-color: var(--color-green);
+  box-shadow: 0 0 6px rgba(0, 255, 102, 0.5);
+  font-weight: bold;
+}
+
+.btn-matrix-chip.is-firing {
+  background: #fff !important;
+  color: #000 !important;
+  box-shadow: 0 0 12px #fff, 0 0 16px var(--color-green) !important;
+  transform: scale(1.08);
 }
 
 .track-source-select {
@@ -1153,8 +1302,9 @@ main {
     order: 2;
   }
 
-  .track-input-cell .track-channel-select {
+  .track-input-cell .btn-channel-toggle {
     width: 100%;
+    min-width: 0;
   }
 
   .track-name-cell {

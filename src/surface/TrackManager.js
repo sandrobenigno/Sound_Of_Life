@@ -37,7 +37,13 @@ export class TrackManager {
   getMappedInputChannels() {
     const set = new Set();
     for (const t of this.tracks) {
-      set.add(t.inputChannel);
+      if (Array.isArray(t.inputChannels)) {
+        for (const ch of t.inputChannels) {
+          set.add(ch);
+        }
+      } else if (t.inputChannel !== undefined) {
+        set.add(t.inputChannel);
+      }
     }
     return set;
   }
@@ -64,15 +70,19 @@ export class TrackManager {
       return null;
     }
 
-    const inputChannel = config.inputChannel !== undefined
-      ? config.inputChannel
-      : this.getFirstAvailableChannel();
+    let inputChannels = config.inputChannels;
+    if (!inputChannels && config.inputChannel !== undefined) {
+      inputChannels = [config.inputChannel];
+    } else if (!inputChannels) {
+      inputChannels = [this.getFirstAvailableChannel()];
+    }
 
-    const defaultName = config.name || `Pista ${inputChannel + 1}`;
+    const firstCh = inputChannels[0] ?? 0;
+    const defaultName = config.name || `Pista ${firstCh + 1}`;
 
     const track = new Track({
       ...config,
-      inputChannel,
+      inputChannels,
       name: defaultName
     });
 
@@ -105,7 +115,9 @@ export class TrackManager {
     const json = orig.toJSON();
     delete json.id;
     json.name = `${orig.name} (Cópia)`;
-    json.inputChannel = this.getFirstAvailableChannel();
+    const nextCh = this.getFirstAvailableChannel();
+    json.inputChannels = [nextCh];
+    json.inputChannel = nextCh;
 
     // Insere a nova pista duplicada imediatamente abaixo da original
     return this.insertTrack(json, origIndex + 1);
@@ -143,12 +155,17 @@ export class TrackManager {
     const anySoloActive = this.tracks.some(t => t.solo);
     const triggeredEvents = [];
 
-    // Dispara apenas as pistas mapeadas para canais atualmente ativos no radar
+    // Dispara pistas que possuam pelo menos um canal ativo na fatia atual
     for (const track of this.tracks) {
-      const ch = track.inputChannel;
-      if (ch >= 0 && ch < eventData.trackStates.length && eventData.trackStates[ch]) {
-        const triggerResult = track.processTrigger(eventData, this.soundEngine, anySoloActive);
+      const activeChannels = track.inputChannels.filter(
+        ch => ch >= 0 && ch < eventData.trackStates.length && eventData.trackStates[ch]
+      );
+
+      if (activeChannels.length > 0) {
+        // Dispara usando o primeiro canal ativo detectado como referência
+        const triggerResult = track.processTrigger(eventData, this.soundEngine, anySoloActive, activeChannels[0]);
         if (triggerResult) {
+          triggerResult.activeChannels = activeChannels;
           triggeredEvents.push(triggerResult);
         }
       } else {
