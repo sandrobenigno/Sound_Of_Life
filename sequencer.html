@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound of Life (SOL) — Sequenciador Melódico Polar</title>
+  <link rel="icon" type="image/png" href="public/assets/sol.png">
+  <link rel="stylesheet" href="src/sequencer/style_sequencer.css">
+</head>
+<body class="seq-body">
+
+  <!-- Header Superior & Barra de Transporte -->
+  <header class="seq-header">
+    <div class="seq-top-row">
+      <div class="seq-brand-group">
+        <div class="seq-brand">
+          <h1>SOUND OF LIFE <span>SEQUENCER</span></h1>
+          <span class="seq-badge">POLAR PIANO ROLL</span>
+        </div>
+        <a href="index.html" class="seq-nav-btn" title="Voltar para a versão original do SOL com autômato celular e Game of Life">
+          ↩️ Ir para SOL Clássico
+        </a>
+      </div>
+
+      <div class="seq-transport-bar">
+        <!-- Play / Stop -->
+        <div class="seq-transport-group">
+          <button type="button" class="btn-seq btn-play" id="btnPlay" title="Tocar / Pausar (Espaço)">
+            <span class="btn-icon">▶</span> <span>Tocar</span>
+          </button>
+          <button type="button" class="btn-seq btn-stop" id="btnStop" title="Parar e voltar ao início (Esc)">
+            <span class="btn-icon">⏹</span> <span>Parar</span>
+          </button>
+        </div>
+
+        <!-- Andamento (BPM) -->
+        <div class="seq-transport-group">
+          <div class="seq-control-item">
+            <label for="bpmSlider">BPM:</label>
+            <input type="range" id="bpmSlider" min="40" max="220" value="110">
+            <span id="bpmDisplay">110</span>
+          </div>
+        </div>
+
+        <!-- Resolução do Disco (Steps e Anéis) -->
+        <div class="seq-transport-group">
+          <div class="seq-control-item">
+            <label for="selectSteps">PASSOS:</label>
+            <select id="selectSteps" title="Número de fatias radiais / passos no compasso">
+              <option value="8">8 Steps</option>
+              <option value="12">12 Steps (Shuffle)</option>
+              <option value="16" selected>16 Steps (4/4)</option>
+              <option value="24">24 Steps (Ternário)</option>
+              <option value="32">32 Steps</option>
+              <option value="48">48 Steps</option>
+            </select>
+          </div>
+
+          <div class="seq-control-item">
+            <label for="selectRings">ANÉIS:</label>
+            <select id="selectRings" title="Número de trilhas concêntricas / vozes do sequenciador">
+              <option value="4">4 Anéis</option>
+              <option value="6">6 Anéis</option>
+              <option value="8" selected>8 Anéis</option>
+              <option value="12">12 Anéis</option>
+              <option value="16">16 Anéis</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Master Vol & FX -->
+        <div class="seq-transport-group">
+          <div class="seq-control-item">
+            <label for="masterVolSlider">VOL:</label>
+            <input type="range" id="masterVolSlider" min="0" max="1.2" step="0.05" value="0.8">
+            <span id="masterVolDisplay">80%</span>
+          </div>
+          <div class="seq-control-item">
+            <label for="masterFxSlider">FX:</label>
+            <input type="range" id="masterFxSlider" min="0" max="1" step="0.01" value="0.25">
+            <span id="masterFxDisplay">25%</span>
+          </div>
+        </div>
+
+        <!-- Ações Globais: Limpar, SF2, Salvar/Carregar -->
+        <div class="seq-transport-group">
+          <button type="button" class="btn-seq" id="btnClearAll" title="Limpar todas as células do disco">
+            🧹 Limpar
+          </button>
+          <button type="button" class="btn-seq" id="btnLoadSf2" title="Carregar arquivo SoundFont (.sf2) do seu computador">
+            📂 Carregar .SF2
+          </button>
+          <button type="button" class="btn-seq" id="btnExport" title="Exportar projeto polar (.solseq.json)">
+            ⬇️ Salvar
+          </button>
+          <button type="button" class="btn-seq" id="btnImport" title="Carregar projeto polar (.solseq.json)">
+            ⬆️ Abrir
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Inputs Ocultos de Arquivo -->
+  <input type="file" id="fileInputSf2" accept=".sf2" style="display: none;">
+  <input type="file" id="fileInputSeq" accept=".json,.solseq.json" style="display: none;">
+
+  <!-- Corpo Principal: Duas Colunas -->
+  <main class="seq-main">
+    <!-- Coluna Esquerda: Disco Polar + Piano Palette -->
+    <section class="seq-stage-column">
+      <div class="seq-radar-box" id="radarContainer"></div>
+      <div class="seq-palette-box" id="paletteContainer"></div>
+    </section>
+
+    <!-- Coluna Direita: Musical Surface (Rack de Timbres dos Anéis) -->
+    <section class="seq-surface-column" id="surfaceContainer"></section>
+  </main>
+
+  <script type="module" src="src/sequencer/mainSequencer.js"></script>
+</body>
+</html>

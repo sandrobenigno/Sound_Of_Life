@@ -20,6 +20,7 @@ Nesta versão **Web Modular**, o sistema foi desenvolvido sob uma arquitetura de
 - **Escalas Customizadas Flexíveis**: Crie sequências melódicas personalizadas digitando notas diretamente (`C3 F#3 Bb4...`).
 - **Gerenciador de Esquemas Inteligente**: Exportação/importação `.sol.json` com identificadores semânticos de instrumentos e detecção/reconexão automática de SoundFonts.
 - **Ponte de Comunicação Externa**: Suporte a WebSockets e transmissor OSC UDP em Python para controlar DAWs e sintetizadores externos (Ableton Live, Reaper, Max/MSP, PureData, VCV Rack).
+- **Novo Modo Sequenciador Melódico Polar (`sequencer.html`)**: Em vez de autômato celular, opera como um *Circular Piano Roll* com resolução editável (8 a 48 passos x 4 a 16 anéis) e uma **Paleta de Notas em Piano (5 oitavas, C0 a C5)** para pintar melodias e acordes diretamente nas células do disco!
 
 ---
 
