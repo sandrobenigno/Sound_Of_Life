@@ -21,6 +21,13 @@ export class SequencerCanvas {
       logoUrl: 'public/assets/sol.png'
     });
 
+    if (this.palette) {
+      this.renderer.selectedRingIndex = this.palette.selectedRingIndex || 0;
+      this.palette.onRingChange((ring) => {
+        this.renderer.selectedRingIndex = ring;
+      });
+    }
+
     this.isPointerDown = false;
     this.lastPainted = { step: -1, ring: -1 };
 

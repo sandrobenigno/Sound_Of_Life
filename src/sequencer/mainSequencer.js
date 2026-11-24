@@ -34,8 +34,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // 5. Montagem do Gerenciador de Pistas e da Musical Surface
   const trackManager = new SequencerTrackManager(core, soundEngine, palette);
+  palette.setTrackManager(trackManager);
+
   const surfaceContainer = document.getElementById('surfaceContainer');
-  const surfaceView = new SequencerSurfaceView(surfaceContainer, trackManager, soundEngine);
+  const surfaceView = new SequencerSurfaceView(surfaceContainer, trackManager, soundEngine, palette);
 
   // 6. Bind da Barra Superior de Transporte & Controles
   const btnPlay = document.getElementById('btnPlay');

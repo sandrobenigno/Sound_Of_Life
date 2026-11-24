@@ -24,6 +24,8 @@ export class SequencerRadarRenderer {
       this.logoImg.src = options.logoUrl;
     }
 
+    this.selectedRingIndex = 0; // Anel ativo de referência
+
     this.resize(this.width, this.height);
   }
 
@@ -98,6 +100,22 @@ export class SequencerRadarRenderer {
       ctx.stroke();
     }
     ctx.restore();
+
+    // 3.1 Realce do Anel de Referência (Som do Teclado)
+    if (this.selectedRingIndex !== null && this.selectedRingIndex >= 0 && this.selectedRingIndex < rings) {
+      const rIn = this.innerRadius + this.selectedRingIndex * this.ringWidth;
+      const rOut = rIn + this.ringWidth;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, rOut, 0, Math.PI * 2);
+      ctx.arc(cx, cy, rIn, 0, Math.PI * 2, true);
+      ctx.fillStyle = 'rgba(255, 183, 3, 0.08)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 183, 3, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // 4. Grid de Fatias (Steps)
     ctx.save();

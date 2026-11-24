@@ -263,6 +263,47 @@ body.seq-body {
   padding-bottom: 6px;
 }
 
+.palette-top-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.palette-track-ref {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 183, 3, 0.35);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.track-ref-label {
+  font-size: 9.5px;
+  font-weight: 900;
+  color: var(--color-amber);
+  font-family: var(--font-mono);
+}
+
+.palette-track-dropdown {
+  background: var(--bg-input);
+  color: var(--text-main);
+  border: 1px solid rgba(255, 183, 3, 0.3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.palette-track-dropdown:focus {
+  border-color: var(--color-amber);
+  box-shadow: 0 0 6px rgba(255, 183, 3, 0.4);
+}
+
 .brush-indicator {
   display: flex;
   align-items: center;
@@ -559,6 +600,63 @@ body.seq-body {
 .seq-track-card.is-solo {
   border-left-color: var(--color-amber);
   box-shadow: 0 0 10px rgba(255, 183, 3, 0.25);
+}
+
+.seq-track-card.is-active-target {
+  border-left-color: var(--color-amber) !important;
+  border-color: rgba(255, 183, 3, 0.55);
+  background: rgba(255, 183, 3, 0.06);
+  box-shadow: 0 0 14px rgba(255, 183, 3, 0.35);
+}
+
+.seq-track-focus-col {
+  display: flex;
+  align-items: center;
+}
+
+.btn-focus-track {
+  width: 24px;
+  height: 24px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  opacity: 0.55;
+}
+
+.btn-focus-track:hover {
+  opacity: 1;
+  border-color: var(--color-amber);
+  background: rgba(255, 183, 3, 0.1);
+}
+
+.btn-focus-track.active {
+  opacity: 1;
+  background: rgba(255, 183, 3, 0.25);
+  border-color: var(--color-amber);
+  box-shadow: 0 0 8px rgba(255, 183, 3, 0.6);
+}
+
+.seq-ring-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.seq-target-badge {
+  background: rgba(255, 183, 3, 0.2);
+  border: 1px solid var(--color-amber);
+  color: var(--color-amber);
+  font-size: 7.5px;
+  font-weight: 900;
+  padding: 0 4px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
 }
 
 .seq-track-led-col {

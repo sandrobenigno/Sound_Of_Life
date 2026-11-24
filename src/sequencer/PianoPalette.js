@@ -1,9 +1,8 @@
 /**
  * PianoPalette.js
  * Teclado interativo de 88 teclas (A0 a C8).
- * Padrão acústico universal compatível com 100% dos SoundFonts SF2 e instrumentos acústicos/digitais.
- * Atua como "Paleta de Cores" para seleção de notas melódicas com preview auditivo imediato
- * e atribuição para o pincel do sequenciador polar.
+ * Padrão acústico universal compatível com 100% dos SoundFonts SF2 e sintetizadores.
+ * Permite selecionar qual pista do rack serve de referência sonora para o teclado.
  */
 
 import { ScaleCatalog } from '../surface/ScaleCatalog.js';
@@ -24,16 +23,49 @@ export class PianoPalette {
   constructor(container, soundEngine = null) {
     this.container = container;
     this.soundEngine = soundEngine;
+    this.trackManager = null;
 
     this.activeNote = 'C3';
     this.activeMidi = 48;
     this.activeVel = 90;
     this.eraseMode = false;
+    this.selectedRingIndex = 0; // Anel/Pista de referência para o som
 
     this.listeners = new Set();
+    this.ringChangeListeners = new Set();
     this.keyElements = new Map(); // noteStr -> DOM element
 
     this._render();
+  }
+
+  setTrackManager(trackManager) {
+    this.trackManager = trackManager;
+    if (this.trackManager) {
+      this.trackManager.onChange(() => {
+        this._updateTrackDropdown();
+      });
+    }
+    this._updateTrackDropdown();
+  }
+
+  setSelectedRing(ringIndex) {
+    this.selectedRingIndex = Math.max(0, parseInt(ringIndex, 10) || 0);
+    const selectEl = this.container.querySelector('#paletteTrackSelect');
+    if (selectEl && parseInt(selectEl.value, 10) !== this.selectedRingIndex) {
+      selectEl.value = this.selectedRingIndex;
+    }
+    this._notifyRingChange();
+  }
+
+  _notifyRingChange() {
+    for (const cb of this.ringChangeListeners) {
+      try { cb(this.selectedRingIndex); } catch (_) {}
+    }
+  }
+
+  onRingChange(cb) {
+    this.ringChangeListeners.add(cb);
+    return () => this.ringChangeListeners.delete(cb);
   }
 
   getBrush() {
@@ -42,7 +74,8 @@ export class PianoPalette {
       midi: this.activeMidi,
       vel: this.activeVel,
       color: this.getNoteColor(this.activeNote),
-      eraseMode: this.eraseMode
+      eraseMode: this.eraseMode,
+      targetRing: this.selectedRingIndex
     };
   }
 
@@ -57,10 +90,19 @@ export class PianoPalette {
     this.container.innerHTML = `
       <div class="piano-palette-wrapper">
         <div class="palette-toolbar">
-          <div class="brush-indicator" id="paletteBrushDisplay" title="Nota ativa selecionada no pincel">
-            <span class="brush-dot" style="background: ${this.getNoteColor(this.activeNote)};"></span>
-            <span class="brush-label">PINCEL:</span>
-            <span class="brush-note" id="brushNoteText">${this.activeNote}</span>
+          <div class="palette-top-controls">
+            <!-- Pincel Atual -->
+            <div class="brush-indicator" id="paletteBrushDisplay" title="Nota ativa selecionada no pincel">
+              <span class="brush-dot" style="background: ${this.getNoteColor(this.activeNote)};"></span>
+              <span class="brush-label">PINCEL:</span>
+              <span class="brush-note" id="brushNoteText">${this.activeNote}</span>
+            </div>
+
+            <!-- Seletor de Pista de Referência de Som -->
+            <div class="palette-track-ref" title="Selecione qual pista/timbre do rack será reproduzido pelo teclado">
+              <span class="track-ref-label">🎧 SOM:</span>
+              <select id="paletteTrackSelect" class="palette-track-dropdown"></select>
+            </div>
           </div>
 
           <div class="palette-tools">
@@ -97,11 +139,32 @@ export class PianoPalette {
     this._generate88Keys();
     this._bindEvents();
     this._highlightActiveKey();
+    this._updateTrackDropdown();
 
     // Rola suavemente para centralizar a Oitava 3 / 4 inicialmente
     setTimeout(() => {
       this.scrollToNote('C3');
     }, 120);
+  }
+
+  _updateTrackDropdown() {
+    const selectEl = this.container.querySelector('#paletteTrackSelect');
+    if (!selectEl) return;
+
+    if (!this.trackManager || !this.trackManager.tracks || this.trackManager.tracks.length === 0) {
+      selectEl.innerHTML = `<option value="0">Anel 1 (Padrão)</option>`;
+      return;
+    }
+
+    let html = '';
+    this.trackManager.tracks.forEach(track => {
+      const isSel = track.ringIndex === this.selectedRingIndex;
+      // Nome amigável do som
+      const srcName = track.soundSource.replace('synth:', 'Synth ').replace('sf2:', 'SF2 ');
+      html += `<option value="${track.ringIndex}" ${isSel ? 'selected' : ''}>Anel ${track.ringIndex + 1}: ${track.name} (${srcName})</option>`;
+    });
+
+    selectEl.innerHTML = html;
   }
 
   _generate88Keys() {
@@ -145,6 +208,14 @@ export class PianoPalette {
     const velSlider = this.container.querySelector('#paletteVelSlider');
     const velDisplay = this.container.querySelector('#paletteVelDisplay');
     const scrollArea = this.container.querySelector('#pianoScrollArea');
+    const trackSelect = this.container.querySelector('#paletteTrackSelect');
+
+    // Seletor de Pista
+    if (trackSelect) {
+      trackSelect.addEventListener('change', (e) => {
+        this.setSelectedRing(parseInt(e.target.value, 10));
+      });
+    }
 
     // Botão de borracha
     btnErase.addEventListener('click', () => {
@@ -212,14 +283,27 @@ export class PianoPalette {
     this._updateBrushDisplay();
     this._highlightActiveKey();
 
+    // Toca o som usando o timbre da pista de referência ativa
     if (playPreview && this.soundEngine) {
       this.soundEngine.unlock();
+
+      let targetSource = 'synth:saw';
+      let targetGain = 0.85;
+
+      if (this.trackManager) {
+        const track = this.trackManager.getTrack(this.selectedRingIndex);
+        if (track) {
+          targetSource = track.soundSource;
+          targetGain = track.gain;
+        }
+      }
+
       this.soundEngine.playNote({
         note: this.activeNote,
         velocity: this.activeVel,
-        duration: 260,
-        soundSource: 'synth:pluck',
-        gain: 0.8
+        duration: 280,
+        soundSource: targetSource,
+        gain: targetGain
       });
     }
 
