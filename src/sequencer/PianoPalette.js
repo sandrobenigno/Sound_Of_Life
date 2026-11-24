@@ -1,19 +1,23 @@
 /**
  * PianoPalette.js
- * Teclado interativo de 5 oitavas (C0 a C5 - 61 teclas).
+ * Teclado interativo de 88 teclas (A0 a C8).
+ * Padrão acústico universal compatível com 100% dos SoundFonts SF2 e instrumentos acústicos/digitais.
  * Atua como "Paleta de Cores" para seleção de notas melódicas com preview auditivo imediato
  * e atribuição para o pincel do sequenciador polar.
  */
 
-import { ScaleCatalog, NOTE_NAMES } from '../surface/ScaleCatalog.js';
+import { ScaleCatalog } from '../surface/ScaleCatalog.js';
 
 export const OCTAVE_COLORS = {
-  0: '#3a86ff', // Azul profundo
+  0: '#3a86ff', // Azul clássico (A0, A#0, B0)
   1: '#00f5d4', // Ciano / Turquesa
   2: '#70e000', // Verde / Esmeralda
-  3: '#ffbe0b', // Âmbar / Dourado
-  4: '#ff006e', // Magenta / Rosa neon
-  5: '#ffffff'  // Branco
+  3: '#aacc00', // Verde-amarelado / Chartreuse
+  4: '#ffbe0b', // Dourado / Âmbar (Dó Central C4)
+  5: '#fb5607', // Laranja
+  6: '#ff006e', // Rosa neon / Magenta
+  7: '#8338ec', // Violeta / Púrpura
+  8: '#ffffff'  // Branco cristalino (C8)
 };
 
 export class PianoPalette {
@@ -70,47 +74,44 @@ export class PianoPalette {
               <span id="paletteVelDisplay">${this.activeVel}</span>
             </div>
 
-            <div class="palette-octave-legend">
-              <span class="oct-tag" style="--c: ${OCTAVE_COLORS[0]}">Oit 0</span>
-              <span class="oct-tag" style="--c: ${OCTAVE_COLORS[1]}">Oit 1</span>
-              <span class="oct-tag" style="--c: ${OCTAVE_COLORS[2]}">Oit 2</span>
-              <span class="oct-tag" style="--c: ${OCTAVE_COLORS[3]}">Oit 3</span>
-              <span class="oct-tag" style="--c: ${OCTAVE_COLORS[4]}">Oit 4</span>
-              <span class="oct-tag" style="--c: ${OCTAVE_COLORS[5]}">Oit 5</span>
+            <div class="palette-octave-legend" id="octaveJumpContainer" title="Clique para rolar até a oitava desejada">
+              <span class="oct-tag oct-jump-btn" data-oct="0" style="--c: ${OCTAVE_COLORS[0]}">Oit 0</span>
+              <span class="oct-tag oct-jump-btn" data-oct="1" style="--c: ${OCTAVE_COLORS[1]}">Oit 1</span>
+              <span class="oct-tag oct-jump-btn" data-oct="2" style="--c: ${OCTAVE_COLORS[2]}">Oit 2</span>
+              <span class="oct-tag oct-jump-btn" data-oct="3" style="--c: ${OCTAVE_COLORS[3]}">Oit 3</span>
+              <span class="oct-tag oct-jump-btn" data-oct="4" style="--c: ${OCTAVE_COLORS[4]}">Oit 4 (C4)</span>
+              <span class="oct-tag oct-jump-btn" data-oct="5" style="--c: ${OCTAVE_COLORS[5]}">Oit 5</span>
+              <span class="oct-tag oct-jump-btn" data-oct="6" style="--c: ${OCTAVE_COLORS[6]}">Oit 6</span>
+              <span class="oct-tag oct-jump-btn" data-oct="7" style="--c: ${OCTAVE_COLORS[7]}">Oit 7</span>
+              <span class="oct-tag oct-jump-btn" data-oct="8" style="--c: ${OCTAVE_COLORS[8]}">Oit 8</span>
             </div>
           </div>
         </div>
 
-        <div class="piano-keyboard-scroll" id="pianoScrollArea">
+        <div class="piano-keyboard-scroll" id="pianoScrollArea" title="Dica: Use a rodinha do mouse ou arraste para rolar pelas 88 teclas">
           <div class="piano-keyboard" id="pianoKeyboard"></div>
         </div>
       </div>
     `;
 
-    this._generateKeys();
+    this._generate88Keys();
     this._bindEvents();
     this._highlightActiveKey();
 
-    // Rola suavemente para centralizar a Oitava 3 inicialmente
+    // Rola suavemente para centralizar a Oitava 3 / 4 inicialmente
     setTimeout(() => {
-      const c3Key = this.keyElements.get('C3');
-      const scrollArea = this.container.querySelector('#pianoScrollArea');
-      if (c3Key && scrollArea) {
-        scrollArea.scrollLeft = c3Key.offsetLeft - scrollArea.clientWidth / 2 + 30;
-      }
-    }, 100);
+      this.scrollToNote('C3');
+    }, 120);
   }
 
-  _generateKeys() {
+  _generate88Keys() {
     const keyboardEl = this.container.querySelector('#pianoKeyboard');
     keyboardEl.innerHTML = '';
     this.keyElements.clear();
 
-    // 5 oitavas de C0 (12) a C5 (72) = 61 teclas
-    const startMidi = 12; // C0
-    const endMidi = 72;   // C5
-
-    let whiteKeyIndex = 0;
+    // Piano Padrão Universal de 88 Teclas: A0 (MIDI 21) até C8 (MIDI 108)
+    const startMidi = 21;  // A0
+    const endMidi = 108;   // C8
 
     for (let midi = startMidi; midi <= endMidi; midi++) {
       const noteStr = ScaleCatalog.midiToNote(midi);
@@ -126,13 +127,12 @@ export class PianoPalette {
       keyEl.style.setProperty('--oct-color', color);
 
       if (isBlack) {
-        // Posicionamento relativo à tecla branca anterior
         keyEl.innerHTML = `<span class="key-name">${noteStr}</span>`;
       } else {
+        const isRootC = noteStr.startsWith('C') || noteStr === 'A0';
         keyEl.innerHTML = `
-          <span class="key-name ${noteStr.startsWith('C') ? 'key-root-name' : ''}">${noteStr}</span>
+          <span class="key-name ${isRootC ? 'key-root-name' : ''}">${noteStr}</span>
         `;
-        whiteKeyIndex++;
       }
 
       keyboardEl.appendChild(keyEl);
@@ -144,7 +144,9 @@ export class PianoPalette {
     const btnErase = this.container.querySelector('#btnEraseMode');
     const velSlider = this.container.querySelector('#paletteVelSlider');
     const velDisplay = this.container.querySelector('#paletteVelDisplay');
+    const scrollArea = this.container.querySelector('#pianoScrollArea');
 
+    // Botão de borracha
     btnErase.addEventListener('click', () => {
       this.eraseMode = !this.eraseMode;
       btnErase.classList.toggle('active', this.eraseMode);
@@ -152,10 +154,28 @@ export class PianoPalette {
       this.notify();
     });
 
+    // Slider de velocidade
     velSlider.addEventListener('input', (e) => {
       this.activeVel = parseInt(e.target.value, 10);
       velDisplay.textContent = this.activeVel;
       this.notify();
+    });
+
+    // Rolagem horizontal suave com a roda do mouse sobre o teclado
+    scrollArea.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        scrollArea.scrollLeft += e.deltaY;
+      }
+    }, { passive: false });
+
+    // Pílulas de salto rápido de oitavas
+    this.container.querySelectorAll('.oct-jump-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const oct = btn.dataset.oct;
+        const targetNote = oct === '0' ? 'A0' : `C${oct}`;
+        this.scrollToNote(targetNote);
+      });
     });
 
     // Clique nas teclas do piano
@@ -168,6 +188,17 @@ export class PianoPalette {
 
       this.selectNote(note, midi, true);
     });
+  }
+
+  scrollToNote(noteStr) {
+    const keyEl = this.keyElements.get(noteStr);
+    const scrollArea = this.container.querySelector('#pianoScrollArea');
+    if (keyEl && scrollArea) {
+      scrollArea.scrollTo({
+        left: keyEl.offsetLeft - scrollArea.clientWidth / 2 + 20,
+        behavior: 'smooth'
+      });
+    }
   }
 
   selectNote(noteStr, midi = null, playPreview = true) {

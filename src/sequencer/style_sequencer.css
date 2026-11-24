@@ -349,12 +349,21 @@ body.seq-body {
   font-weight: bold;
   color: var(--c);
   border: 1px solid var(--c);
-  padding: 1px 4px;
-  border-radius: 2px;
-  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: all 0.12s ease;
 }
 
-/* Teclado do Piano (Scrollável de 61 teclas) */
+.oct-tag:hover {
+  background: var(--c);
+  color: #000;
+  box-shadow: 0 0 6px var(--c);
+  transform: translateY(-1px);
+}
+
+/* Teclado do Piano (Scrollável de 88 teclas) */
 .piano-keyboard-scroll {
   width: 100%;
   overflow-x: auto;
