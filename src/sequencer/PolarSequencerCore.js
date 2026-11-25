@@ -25,9 +25,76 @@ export class PolarSequencerCore {
     this.grid = [];
     this._initGrid();
 
+    // Histórico de Ações (Undo / Redo)
+    this.undoStack = [];
+    this.redoStack = [];
+    this.maxHistory = 50;
+    this.historyListeners = new Set();
+
     // Ouvintes de eventos
     this.stepListeners = new Set();
     this.changeListeners = new Set();
+  }
+
+  _cloneGrid(grid = this.grid) {
+    return grid.map(col => col.map(cell => ({ ...cell })));
+  }
+
+  /**
+   * Salva um instantâneo do grid atual na pilha de Undo
+   */
+  saveState(actionName = '') {
+    this.undoStack.push(this._cloneGrid(this.grid));
+    if (this.undoStack.length > this.maxHistory) {
+      this.undoStack.shift();
+    }
+    this.redoStack = [];
+    this._notifyHistoryChange();
+  }
+
+  canUndo() {
+    return this.undoStack.length > 0;
+  }
+
+  canRedo() {
+    return this.redoStack.length > 0;
+  }
+
+  undo() {
+    if (!this.canUndo()) return false;
+    this.redoStack.push(this._cloneGrid(this.grid));
+    const previous = this.undoStack.pop();
+    this.grid = this._cloneGrid(previous);
+    this.notifyChange();
+    this._notifyHistoryChange();
+    return true;
+  }
+
+  redo() {
+    if (!this.canRedo()) return false;
+    this.undoStack.push(this._cloneGrid(this.grid));
+    const next = this.redoStack.pop();
+    this.grid = this._cloneGrid(next);
+    this.notifyChange();
+    this._notifyHistoryChange();
+    return true;
+  }
+
+  onHistoryChange(cb) {
+    this.historyListeners.add(cb);
+    try {
+      cb({ canUndo: this.canUndo(), canRedo: this.canRedo() });
+    } catch (_) {}
+    return () => this.historyListeners.delete(cb);
+  }
+
+  _notifyHistoryChange() {
+    const payload = { canUndo: this.canUndo(), canRedo: this.canRedo() };
+    for (const cb of this.historyListeners) {
+      try { cb(payload); } catch (e) {
+        console.error('[PolarSequencer] Erro no listener de histórico:', e);
+      }
+    }
   }
 
   _initGrid() {
@@ -54,6 +121,9 @@ export class PolarSequencerCore {
   setResolution(newSteps, newRings) {
     const sCount = Math.max(4, Math.min(64, parseInt(newSteps, 10) || 16));
     const rCount = Math.max(2, Math.min(24, parseInt(newRings, 10) || 8));
+
+    if (sCount === this.steps && rCount === this.rings) return;
+    this.saveState('Mudar Resolução');
 
     const oldGrid = this.grid;
     const oldSteps = this.steps;
@@ -135,7 +205,32 @@ export class PolarSequencerCore {
     return cell;
   }
 
+  moveCell(fromStep, fromRing, toStep, toRing) {
+    if (fromStep < 0 || fromStep >= this.steps || fromRing < 0 || fromRing >= this.rings) return false;
+    if (toStep < 0 || toStep >= this.steps || toRing < 0 || toRing >= this.rings) return false;
+    if (fromStep === toStep && fromRing === toRing) return false;
+
+    const sourceCell = this.grid[fromStep][fromRing];
+    if (!sourceCell || !sourceCell.active) return false;
+
+    // Transfere os dados da nota para a nova célula de destino
+    this.grid[toStep][toRing] = {
+      ...sourceCell,
+      active: true
+    };
+
+    // Desativa a célula de origem
+    this.grid[fromStep][fromRing] = {
+      ...sourceCell,
+      active: false
+    };
+
+    this.notifyChange();
+    return true;
+  }
+
   clearAll() {
+    this.saveState('Limpar Tudo');
     for (let s = 0; s < this.steps; s++) {
       for (let r = 0; r < this.rings; r++) {
         this.grid[s][r].active = false;

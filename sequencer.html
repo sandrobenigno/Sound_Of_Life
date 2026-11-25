@@ -82,8 +82,14 @@
           </div>
         </div>
 
-        <!-- Ações Globais: Limpar, SF2, Salvar/Carregar -->
+        <!-- Ações Globais: Histórico, Limpar, SF2, Salvar/Carregar -->
         <div class="seq-transport-group">
+          <button type="button" class="btn-seq btn-history" id="btnTopUndo" title="Desfazer última alteração (Ctrl+Z)" disabled>
+            ↩️ Desfazer
+          </button>
+          <button type="button" class="btn-seq btn-history" id="btnTopRedo" title="Refazer alteração (Ctrl+Y ou Ctrl+Shift+Z)" disabled>
+            ↪️ Refazer
+          </button>
           <button type="button" class="btn-seq" id="btnClearAll" title="Limpar todas as células do disco">
             🧹 Limpar
           </button>

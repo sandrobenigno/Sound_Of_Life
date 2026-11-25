@@ -25,8 +25,13 @@ export class SequencerRadarRenderer {
     }
 
     this.selectedRingIndex = 0; // Anel ativo de referência
+    this.dragGhost = null;      // Célula fantasma para pré-visualização ao arrastar
 
     this.resize(this.width, this.height);
+  }
+
+  setDragGhost(ghost) {
+    this.dragGhost = ghost;
   }
 
   resize(w, h) {
@@ -183,6 +188,48 @@ export class SequencerRadarRenderer {
       }
     }
     ctx.restore();
+
+    // 5.1 Célula Fantasma ao Arrastar (Drag Ghost Preview)
+    if (this.dragGhost && this.dragGhost.step >= 0 && this.dragGhost.step < steps && this.dragGhost.ring >= 0 && this.dragGhost.ring < rings) {
+      const g = this.dragGhost;
+      const startAng = g.step * sliceAngle;
+      const endAng = startAng + sliceAngle;
+      const rIn = this.innerRadius + g.ring * this.ringWidth;
+      const rOut = rIn + this.ringWidth;
+      const match = (g.note || 'C3').match(/-?\d+/);
+      const oct = match ? parseInt(match[0], 10) : 3;
+      const ghostColor = OCTAVE_COLORS[oct] || '#00ffff';
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, rOut - 1, startAng, endAng);
+      ctx.arc(cx, cy, rIn + 1, endAng, startAng, true);
+      ctx.closePath();
+
+      ctx.fillStyle = ghostColor;
+      ctx.globalAlpha = 0.55;
+      ctx.shadowColor = ghostColor;
+      ctx.shadowBlur = 10;
+      ctx.fill();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+
+      const midAng = (startAng + endAng) / 2;
+      const midR = (rIn + rOut) / 2;
+      const textX = cx + Math.cos(midAng) * midR;
+      const textY = cy + Math.sin(midAng) * midR;
+
+      ctx.font = `bold ${Math.max(8, Math.min(13, Math.floor(this.ringWidth * 0.45)))}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = 1.0;
+      ctx.fillText(g.note || '', textX, textY);
+      ctx.restore();
+    }
 
     // 6. Feixe de Varredura (Scanner fosforescente)
     ctx.save();

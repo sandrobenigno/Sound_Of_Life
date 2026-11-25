@@ -24,9 +24,9 @@ window.addEventListener('DOMContentLoaded', () => {
     stepsPerBeat: 4
   });
 
-  // 3. Montagem da Paleta de Piano (5 oitavas: C0 a C5)
+  // 3. Montagem da Paleta de Piano (Universal 88 Teclas A0 a C8)
   const paletteContainer = document.getElementById('paletteContainer');
-  const palette = new PianoPalette(paletteContainer, soundEngine);
+  const palette = new PianoPalette(paletteContainer, soundEngine, core);
 
   // 4. Montagem do Disco Polar Canvas
   const radarContainer = document.getElementById('radarContainer');
@@ -47,6 +47,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const selectSteps = document.getElementById('selectSteps');
   const selectRings = document.getElementById('selectRings');
   const btnClearAll = document.getElementById('btnClearAll');
+  const btnTopUndo = document.getElementById('btnTopUndo');
+  const btnTopRedo = document.getElementById('btnTopRedo');
   const masterVolSlider = document.getElementById('masterVolSlider');
   const masterVolDisplay = document.getElementById('masterVolDisplay');
   const masterFxSlider = document.getElementById('masterFxSlider');
@@ -93,6 +95,25 @@ window.addEventListener('DOMContentLoaded', () => {
     const r = parseInt(e.target.value, 10);
     core.setResolution(core.steps, r);
     canvasComponent.handleResize();
+  });
+
+  // Desfazer / Refazer no Cabeçalho Superior
+  if (btnTopUndo) {
+    btnTopUndo.addEventListener('click', () => core.undo());
+  }
+  if (btnTopRedo) {
+    btnTopRedo.addEventListener('click', () => core.redo());
+  }
+
+  core.onHistoryChange(({ canUndo, canRedo }) => {
+    if (btnTopUndo) {
+      btnTopUndo.disabled = !canUndo;
+      btnTopUndo.classList.toggle('disabled', !canUndo);
+    }
+    if (btnTopRedo) {
+      btnTopRedo.disabled = !canRedo;
+      btnTopRedo.classList.toggle('disabled', !canRedo);
+    }
   });
 
   // Limpar Tudo
@@ -182,14 +203,34 @@ window.addEventListener('DOMContentLoaded', () => {
     reader.readAsText(file);
   });
 
-  // Atalhos de Teclado
+  // Atalhos de Teclado Globais
   window.addEventListener('keydown', (e) => {
     if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+    // Espaço = Play/Pause, Esc = Stop
     if (e.code === 'Space') {
       e.preventDefault();
       btnPlay.click();
     } else if (e.code === 'Escape') {
       btnStop.click();
+    }
+    // Desfazer (Ctrl+Z) / Refazer (Ctrl+Y ou Ctrl+Shift+Z)
+    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        core.redo();
+      } else {
+        core.undo();
+      }
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+      e.preventDefault();
+      core.redo();
+    }
+    // Seleção rápida de ferramentas (1 = Inserir, 2 = Tocar/Mover, 3 = Borracha)
+    else if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === '1') palette.setTool('insert');
+      if (e.key === '2') palette.setTool('move');
+      if (e.key === '3') palette.setTool('erase');
     }
   });
 

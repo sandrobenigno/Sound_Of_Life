@@ -20,22 +20,86 @@ export const OCTAVE_COLORS = {
 };
 
 export class PianoPalette {
-  constructor(container, soundEngine = null) {
+  constructor(container, soundEngine = null, core = null) {
     this.container = container;
     this.soundEngine = soundEngine;
+    this.core = core;
     this.trackManager = null;
 
     this.activeNote = 'C3';
     this.activeMidi = 48;
     this.activeVel = 90;
-    this.eraseMode = false;
+    this.activeTool = 'insert'; // 'insert' | 'move' | 'erase'
     this.selectedRingIndex = 0; // Anel/Pista de referência para o som
 
     this.listeners = new Set();
     this.ringChangeListeners = new Set();
+    this.toolChangeListeners = new Set();
     this.keyElements = new Map(); // noteStr -> DOM element
 
     this._render();
+    if (this.core) {
+      this._bindCore(this.core);
+    }
+  }
+
+  setCore(core) {
+    this.core = core;
+    this._bindCore(core);
+  }
+
+  _bindCore(core) {
+    if (!core) return;
+    core.onHistoryChange(({ canUndo, canRedo }) => {
+      const btnUndo = this.container.querySelector('#btnUndo');
+      const btnRedo = this.container.querySelector('#btnRedo');
+      if (btnUndo) {
+        btnUndo.disabled = !canUndo;
+        btnUndo.classList.toggle('disabled', !canUndo);
+      }
+      if (btnRedo) {
+        btnRedo.disabled = !canRedo;
+        btnRedo.classList.toggle('disabled', !canRedo);
+      }
+    });
+  }
+
+  setTool(toolName) {
+    if (!['insert', 'move', 'erase'].includes(toolName)) return;
+    this.activeTool = toolName;
+
+    const btnInsert = this.container.querySelector('#btnToolInsert');
+    const btnMove = this.container.querySelector('#btnToolMove');
+    const btnErase = this.container.querySelector('#btnToolErase');
+
+    if (btnInsert) btnInsert.classList.toggle('active', this.activeTool === 'insert');
+    if (btnMove) btnMove.classList.toggle('active', this.activeTool === 'move');
+    if (btnErase) btnErase.classList.toggle('active', this.activeTool === 'erase');
+
+    this._updateBrushDisplay();
+    this._highlightActiveKey();
+    this._notifyToolChange();
+    this.notify();
+  }
+
+  get eraseMode() {
+    return this.activeTool === 'erase';
+  }
+
+  set eraseMode(val) {
+    this.setTool(val ? 'erase' : 'insert');
+  }
+
+  onToolChange(cb) {
+    this.toolChangeListeners.add(cb);
+    try { cb(this.activeTool); } catch (_) {}
+    return () => this.toolChangeListeners.delete(cb);
+  }
+
+  _notifyToolChange() {
+    for (const cb of this.toolChangeListeners) {
+      try { cb(this.activeTool); } catch (_) {}
+    }
   }
 
   setTrackManager(trackManager) {
@@ -74,7 +138,8 @@ export class PianoPalette {
       midi: this.activeMidi,
       vel: this.activeVel,
       color: this.getNoteColor(this.activeNote),
-      eraseMode: this.eraseMode,
+      tool: this.activeTool,
+      eraseMode: this.activeTool === 'erase',
       targetRing: this.selectedRingIndex
     };
   }
@@ -99,16 +164,51 @@ export class PianoPalette {
             </div>
 
             <!-- Seletor de Pista de Referência de Som -->
-            <div class="palette-track-ref" title="Selecione qual pista/timbre do rack será reproduzido pelo teclado">
+            <div class="palette-track-ref" title="Selecione qual pista/timbre do rack será reproduzido pelo teclado e pela ferramenta Tocar/Mover">
               <span class="track-ref-label">🎧 SOM:</span>
               <select id="paletteTrackSelect" class="palette-track-dropdown"></select>
             </div>
           </div>
 
           <div class="palette-tools">
-            <button type="button" class="btn btn-palette-tool ${this.eraseMode ? 'active' : ''}" id="btnEraseMode" title="Modo Borracha: Clique nas células do disco para apagá-las">
-              🧹 Borracha
-            </button>
+            <!-- Grupo de Ferramentas do Cursor -->
+            <div class="seq-toolset" role="group" aria-label="Ferramentas do cursor">
+              <button type="button" class="btn btn-palette-tool is-tool-btn ${this.activeTool === 'insert' ? 'active' : ''}" id="btnToolInsert" title="Inserir / Pintar Nota no Disco (Cruz)">
+                <span class="tool-icon">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="3" x2="12" y2="21"></line><line x1="3" y1="12" x2="21" y2="12"></line></svg>
+                </span>
+                <span>Inserir</span>
+              </button>
+
+              <button type="button" class="btn btn-palette-tool is-tool-btn ${this.activeTool === 'move' ? 'active' : ''}" id="btnToolMove" title="Tocar / Mover Nota (Mãozinha): Clique para ouvir o timbre da pista ou arraste para mover a nota no disco">
+                <span class="tool-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v7"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M6 14v-2a2 2 0 0 0-4 0v5a7 7 0 0 0 7 7h3a7 7 0 0 0 7-7v-3a2 2 0 0 0-4 0"/></svg>
+                </span>
+                <span>Tocar/Mover</span>
+              </button>
+
+              <button type="button" class="btn btn-palette-tool is-tool-btn ${this.activeTool === 'erase' ? 'active' : ''}" id="btnToolErase" title="Borracha: Clique ou arraste sobre as células para apagá-las">
+                <span class="tool-icon">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 7l3 3a2.1 2.1 0 0 1 0 3L11 23H3v-8L13 5l5 2z" fill="rgba(255, 77, 121, 0.35)" stroke="#ff4d79"/>
+                    <path d="M8 18l5-5" stroke="#ffffff"/>
+                  </svg>
+                </span>
+                <span>Borracha</span>
+              </button>
+            </div>
+
+            <!-- Grupo Histórico (Undo / Redo) -->
+            <div class="seq-history-group" role="group" aria-label="Histórico">
+              <button type="button" class="btn btn-palette-tool btn-undo" id="btnUndo" title="Desfazer última alteração (Ctrl+Z)" disabled>
+                <span class="tool-icon">↩️</span>
+                <span>Desfazer</span>
+              </button>
+              <button type="button" class="btn btn-palette-tool btn-redo" id="btnRedo" title="Refazer alteração (Ctrl+Y ou Ctrl+Shift+Z)" disabled>
+                <span class="tool-icon">↪️</span>
+                <span>Refazer</span>
+              </button>
+            </div>
 
             <div class="palette-vel-group">
               <label for="paletteVelSlider">VEL:</label>
@@ -204,7 +304,12 @@ export class PianoPalette {
   }
 
   _bindEvents() {
-    const btnErase = this.container.querySelector('#btnEraseMode');
+    const btnToolInsert = this.container.querySelector('#btnToolInsert');
+    const btnToolMove = this.container.querySelector('#btnToolMove');
+    const btnToolErase = this.container.querySelector('#btnToolErase');
+    const btnUndo = this.container.querySelector('#btnUndo');
+    const btnRedo = this.container.querySelector('#btnRedo');
+
     const velSlider = this.container.querySelector('#paletteVelSlider');
     const velDisplay = this.container.querySelector('#paletteVelDisplay');
     const scrollArea = this.container.querySelector('#pianoScrollArea');
@@ -217,13 +322,28 @@ export class PianoPalette {
       });
     }
 
-    // Botão de borracha
-    btnErase.addEventListener('click', () => {
-      this.eraseMode = !this.eraseMode;
-      btnErase.classList.toggle('active', this.eraseMode);
-      this._updateBrushDisplay();
-      this.notify();
-    });
+    // Ferramentas do cursor
+    if (btnToolInsert) {
+      btnToolInsert.addEventListener('click', () => this.setTool('insert'));
+    }
+    if (btnToolMove) {
+      btnToolMove.addEventListener('click', () => this.setTool('move'));
+    }
+    if (btnToolErase) {
+      btnToolErase.addEventListener('click', () => this.setTool('erase'));
+    }
+
+    // Botões Desfazer / Refazer
+    if (btnUndo) {
+      btnUndo.addEventListener('click', () => {
+        if (this.core) this.core.undo();
+      });
+    }
+    if (btnRedo) {
+      btnRedo.addEventListener('click', () => {
+        if (this.core) this.core.redo();
+      });
+    }
 
     // Slider de velocidade
     velSlider.addEventListener('input', (e) => {
@@ -275,10 +395,11 @@ export class PianoPalette {
   selectNote(noteStr, midi = null, playPreview = true) {
     this.activeNote = noteStr;
     this.activeMidi = midi !== null ? midi : ScaleCatalog.noteToMidi(noteStr);
-    this.eraseMode = false;
 
-    const btnErase = this.container.querySelector('#btnEraseMode');
-    if (btnErase) btnErase.classList.remove('active');
+    // Se estava na borracha, ao selecionar uma nota no teclado volta automaticamente para Inserir
+    if (this.activeTool === 'erase') {
+      this.setTool('insert');
+    }
 
     this._updateBrushDisplay();
     this._highlightActiveKey();
@@ -314,9 +435,12 @@ export class PianoPalette {
     const brushDot = this.container.querySelector('.brush-dot');
     const brushNoteText = this.container.querySelector('#brushNoteText');
 
-    if (this.eraseMode) {
-      if (brushDot) brushDot.style.background = '#ff4d4d';
+    if (this.activeTool === 'erase') {
+      if (brushDot) brushDot.style.background = '#ff4d79';
       if (brushNoteText) brushNoteText.textContent = 'BORRACHA (APAGAR)';
+    } else if (this.activeTool === 'move') {
+      if (brushDot) brushDot.style.background = '#00ff88';
+      if (brushNoteText) brushNoteText.textContent = 'TOCAR / MOVER (✋)';
     } else {
       const color = this.getNoteColor(this.activeNote);
       if (brushDot) brushDot.style.background = color;
@@ -326,7 +450,7 @@ export class PianoPalette {
 
   _highlightActiveKey() {
     for (const [note, el] of this.keyElements) {
-      el.classList.toggle('is-brush-active', !this.eraseMode && note === this.activeNote);
+      el.classList.toggle('is-brush-active', this.activeTool === 'insert' && note === this.activeNote);
     }
   }
 
