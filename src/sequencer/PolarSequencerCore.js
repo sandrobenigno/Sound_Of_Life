@@ -21,9 +21,16 @@ export class PolarSequencerCore {
     this.lastTickTime = 0;
     this.accumulatedTime = 0;
 
-    // Matriz de dados: grid[step][ring] = { active, note, midi, vel, durRatio, color }
+    // Gerenciamento de Patterns (Slots 1 a 10 / Mapeados em 1-9 e 0)
+    this.numPatterns = 10;
+    this.patterns = [];
+    this.activePatternIndex = 0;
+    this.queuedPatternIndex = null; // Pattern na fila para transição quantizada no compasso
+    this.patternListeners = new Set();
+
+    // Matriz de dados ativa: grid[step][ring] aponta para o pattern ativo
     this.grid = [];
-    this._initGrid();
+    this._initPatterns();
 
     // Histórico de Ações (Undo / Redo)
     this.undoStack = [];
@@ -36,15 +43,52 @@ export class PolarSequencerCore {
     this.changeListeners = new Set();
   }
 
+  _createEmptyGrid(steps = this.steps, rings = this.rings) {
+    const grid = [];
+    for (let s = 0; s < steps; s++) {
+      const col = [];
+      for (let r = 0; r < rings; r++) {
+        col.push({
+          active: false,
+          note: 'C3',
+          midi: 48,
+          vel: 90,
+          durRatio: 1.0,
+          color: '#00ffff'
+        });
+      }
+      grid.push(col);
+    }
+    return grid;
+  }
+
+  _initPatterns() {
+    this.patterns = [];
+    for (let i = 0; i < this.numPatterns; i++) {
+      this.patterns.push(this._createEmptyGrid());
+    }
+    this.activePatternIndex = 0;
+    this.queuedPatternIndex = null;
+    this.grid = this.patterns[0];
+  }
+
+  _initGrid() {
+    this._initPatterns();
+  }
+
   _cloneGrid(grid = this.grid) {
     return grid.map(col => col.map(cell => ({ ...cell })));
   }
 
   /**
-   * Salva um instantâneo do grid atual na pilha de Undo
+   * Salva um instantâneo de todos os patterns e do pattern ativo na pilha de Undo
    */
   saveState(actionName = '') {
-    this.undoStack.push(this._cloneGrid(this.grid));
+    const snapshot = {
+      activePatternIndex: this.activePatternIndex,
+      patterns: this.patterns.map(p => this._cloneGrid(p))
+    };
+    this.undoStack.push(snapshot);
     if (this.undoStack.length > this.maxHistory) {
       this.undoStack.shift();
     }
@@ -62,22 +106,132 @@ export class PolarSequencerCore {
 
   undo() {
     if (!this.canUndo()) return false;
-    this.redoStack.push(this._cloneGrid(this.grid));
-    const previous = this.undoStack.pop();
-    this.grid = this._cloneGrid(previous);
+    const current = {
+      activePatternIndex: this.activePatternIndex,
+      patterns: this.patterns.map(p => this._cloneGrid(p))
+    };
+    this.redoStack.push(current);
+    const prev = this.undoStack.pop();
+    this.patterns = prev.patterns.map(p => this._cloneGrid(p));
+    this.activePatternIndex = Math.min(this.numPatterns - 1, prev.activePatternIndex || 0);
+    this.grid = this.patterns[this.activePatternIndex];
+    this.queuedPatternIndex = null;
     this.notifyChange();
+    this._notifyPatternChange();
     this._notifyHistoryChange();
     return true;
   }
 
   redo() {
     if (!this.canRedo()) return false;
-    this.undoStack.push(this._cloneGrid(this.grid));
+    const current = {
+      activePatternIndex: this.activePatternIndex,
+      patterns: this.patterns.map(p => this._cloneGrid(p))
+    };
+    this.undoStack.push(current);
     const next = this.redoStack.pop();
-    this.grid = this._cloneGrid(next);
+    this.patterns = next.patterns.map(p => this._cloneGrid(p));
+    this.activePatternIndex = Math.min(this.numPatterns - 1, next.activePatternIndex || 0);
+    this.grid = this.patterns[this.activePatternIndex];
+    this.queuedPatternIndex = null;
     this.notifyChange();
+    this._notifyPatternChange();
     this._notifyHistoryChange();
     return true;
+  }
+
+  /**
+   * Seleciona um pattern com suporte a quantização musical (espera o fim do compasso se estiver tocando)
+   */
+  selectPattern(index, immediate = false) {
+    if (index < 0 || index >= this.numPatterns) return;
+    if (index === this.activePatternIndex && this.queuedPatternIndex === null) return;
+
+    if (!this.isPlaying || immediate) {
+      this.queuedPatternIndex = null;
+      this.activePatternIndex = index;
+      this.grid = this.patterns[index];
+      this._notifyPatternChange();
+      this.notifyChange();
+    } else {
+      // Alterna o status da fila: se já estava na fila, cancela
+      if (this.queuedPatternIndex === index) {
+        this.queuedPatternIndex = null;
+      } else {
+        this.queuedPatternIndex = index;
+      }
+      this._notifyPatternChange();
+    }
+  }
+
+  /**
+   * Copia o conteúdo de um pattern para outro
+   */
+  copyPattern(fromIndex, toIndex) {
+    if (fromIndex < 0 || fromIndex >= this.numPatterns) return false;
+    if (toIndex < 0 || toIndex >= this.numPatterns) return false;
+    if (fromIndex === toIndex) return false;
+
+    this.saveState(`Copiar P${fromIndex + 1} -> P${toIndex + 1}`);
+    this.patterns[toIndex] = this._cloneGrid(this.patterns[fromIndex]);
+    if (this.activePatternIndex === toIndex) {
+      this.grid = this.patterns[toIndex];
+    }
+    this._notifyPatternChange();
+    this.notifyChange();
+    return true;
+  }
+
+  /**
+   * Limpa o conteúdo de um pattern específico
+   */
+  clearPattern(index = this.activePatternIndex) {
+    if (index < 0 || index >= this.numPatterns) return;
+    this.saveState(`Limpar P${index + 1}`);
+    const p = this.patterns[index];
+    for (let s = 0; s < this.steps; s++) {
+      for (let r = 0; r < this.rings; r++) {
+        p[s][r].active = false;
+      }
+    }
+    this._notifyPatternChange();
+    this.notifyChange();
+  }
+
+  hasPatternContent(index) {
+    const p = this.patterns[index];
+    if (!p) return false;
+    for (let s = 0; s < this.steps; s++) {
+      for (let r = 0; r < this.rings; r++) {
+        if (p[s] && p[s][r] && p[s][r].active) return true;
+      }
+    }
+    return false;
+  }
+
+  onPatternChange(cb) {
+    this.patternListeners.add(cb);
+    try {
+      cb({
+        activePatternIndex: this.activePatternIndex,
+        queuedPatternIndex: this.queuedPatternIndex,
+        numPatterns: this.numPatterns
+      });
+    } catch (_) {}
+    return () => this.patternListeners.delete(cb);
+  }
+
+  _notifyPatternChange() {
+    const payload = {
+      activePatternIndex: this.activePatternIndex,
+      queuedPatternIndex: this.queuedPatternIndex,
+      numPatterns: this.numPatterns
+    };
+    for (const cb of this.patternListeners) {
+      try { cb(payload); } catch (e) {
+        console.error('[PolarSequencer] Erro no listener de pattern:', e);
+      }
+    }
   }
 
   onHistoryChange(cb) {
@@ -97,26 +251,8 @@ export class PolarSequencerCore {
     }
   }
 
-  _initGrid() {
-    this.grid = [];
-    for (let s = 0; s < this.steps; s++) {
-      const col = [];
-      for (let r = 0; r < this.rings; r++) {
-        col.push({
-          active: false,
-          note: 'C3',
-          midi: 48,
-          vel: 90,
-          durRatio: 1.0,
-          color: '#00ffff'
-        });
-      }
-      this.grid.push(col);
-    }
-  }
-
   /**
-   * Altera a resolução do sequenciador mantendo os dados existentes onde compatível
+   * Altera a resolução do sequenciador mantendo os dados existentes em todos os patterns
    */
   setResolution(newSteps, newRings) {
     const sCount = Math.max(4, Math.min(64, parseInt(newSteps, 10) || 16));
@@ -125,36 +261,43 @@ export class PolarSequencerCore {
     if (sCount === this.steps && rCount === this.rings) return;
     this.saveState('Mudar Resolução');
 
-    const oldGrid = this.grid;
     const oldSteps = this.steps;
     const oldRings = this.rings;
+    const oldPatterns = this.patterns;
 
     this.steps = sCount;
     this.rings = rCount;
-    this.grid = [];
+    this.patterns = [];
 
-    for (let s = 0; s < this.steps; s++) {
-      const col = [];
-      for (let r = 0; r < this.rings; r++) {
-        if (s < oldSteps && r < oldRings && oldGrid[s] && oldGrid[s][r]) {
-          col.push({ ...oldGrid[s][r] });
-        } else {
-          col.push({
-            active: false,
-            note: 'C3',
-            midi: 48,
-            vel: 90,
-            durRatio: 1.0,
-            color: '#00ffff'
-          });
+    for (let i = 0; i < this.numPatterns; i++) {
+      const oldGrid = oldPatterns[i] || [];
+      const newGrid = [];
+      for (let s = 0; s < this.steps; s++) {
+        const col = [];
+        for (let r = 0; r < this.rings; r++) {
+          if (s < oldSteps && r < oldRings && oldGrid[s] && oldGrid[s][r]) {
+            col.push({ ...oldGrid[s][r] });
+          } else {
+            col.push({
+              active: false,
+              note: 'C3',
+              midi: 48,
+              vel: 90,
+              durRatio: 1.0,
+              color: '#00ffff'
+            });
+          }
         }
+        newGrid.push(col);
       }
-      this.grid.push(col);
+      this.patterns.push(newGrid);
     }
 
+    this.grid = this.patterns[this.activePatternIndex];
     if (this.currentStep >= this.steps) {
       this.currentStep = 0;
     }
+    this._notifyPatternChange();
     this.notifyChange();
   }
 
@@ -290,7 +433,17 @@ export class PolarSequencerCore {
     while (this.accumulatedTime >= stepMs) {
       this.accumulatedTime -= stepMs;
       this._triggerCurrentStep();
-      this.currentStep = (this.currentStep + 1) % this.steps;
+
+      const nextStep = (this.currentStep + 1) % this.steps;
+      // Se está virando o compasso (downbeat / passo 0) e há pattern enfileirado, troca suavemente!
+      if (nextStep === 0 && this.queuedPatternIndex !== null) {
+        this.activePatternIndex = this.queuedPatternIndex;
+        this.grid = this.patterns[this.activePatternIndex];
+        this.queuedPatternIndex = null;
+        this._notifyPatternChange();
+        this.notifyChange();
+      }
+      this.currentStep = nextStep;
     }
   }
 
@@ -352,11 +505,12 @@ export class PolarSequencerCore {
     }
   }
 
-  toJSON() {
+  _serializeGrid(grid) {
     const cellsData = [];
+    if (!grid) return cellsData;
     for (let s = 0; s < this.steps; s++) {
       for (let r = 0; r < this.rings; r++) {
-        const c = this.grid[s][r];
+        const c = grid[s] ? grid[s][r] : null;
         if (c && c.active) {
           cellsData.push({
             step: s,
@@ -369,15 +523,20 @@ export class PolarSequencerCore {
         }
       }
     }
+    return cellsData;
+  }
 
+  toJSON() {
     return {
-      version: '1.0',
+      version: '1.1',
       type: 'sol_polar_sequencer',
       bpm: this.bpm,
       steps: this.steps,
       rings: this.rings,
       stepsPerBeat: this.stepsPerBeat,
-      cells: cellsData
+      activePatternIndex: this.activePatternIndex,
+      patterns: this.patterns.map(p => this._serializeGrid(p)),
+      cells: this._serializeGrid(this.grid)
     };
   }
 
@@ -388,12 +547,32 @@ export class PolarSequencerCore {
     this.bpm = data.bpm || 120;
     this.stepsPerBeat = data.stepsPerBeat || 4;
 
-    this._initGrid();
+    this._initPatterns();
 
-    if (Array.isArray(data.cells)) {
+    if (Array.isArray(data.patterns) && data.patterns.length > 0) {
+      for (let i = 0; i < Math.min(this.numPatterns, data.patterns.length); i++) {
+        const pCells = data.patterns[i];
+        if (Array.isArray(pCells)) {
+          for (const item of pCells) {
+            if (item.step < this.steps && item.ring < this.rings) {
+              this.patterns[i][item.step][item.ring] = {
+                active: true,
+                note: item.note || ScaleCatalog.midiToNote(item.midi || 60),
+                midi: item.midi !== undefined ? item.midi : ScaleCatalog.noteToMidi(item.note),
+                vel: item.vel !== undefined ? item.vel : 90,
+                durRatio: item.durRatio || 1.0,
+                color: '#00ffff'
+              };
+            }
+          }
+        }
+      }
+      this.activePatternIndex = Math.min(this.numPatterns - 1, data.activePatternIndex || 0);
+    } else if (Array.isArray(data.cells)) {
+      // Compatibilidade retroativa com arquivos v1.0
       for (const item of data.cells) {
         if (item.step < this.steps && item.ring < this.rings) {
-          this.grid[item.step][item.ring] = {
+          this.patterns[0][item.step][item.ring] = {
             active: true,
             note: item.note || ScaleCatalog.midiToNote(item.midi || 60),
             midi: item.midi !== undefined ? item.midi : ScaleCatalog.noteToMidi(item.note),
@@ -403,8 +582,12 @@ export class PolarSequencerCore {
           };
         }
       }
+      this.activePatternIndex = 0;
     }
 
+    this.grid = this.patterns[this.activePatternIndex];
+    this.queuedPatternIndex = null;
+    this._notifyPatternChange();
     this.notifyChange();
   }
 }

@@ -7,6 +7,7 @@ import { SoundEngine } from '../audio/SoundEngine.js';
 import { PolarSequencerCore } from './PolarSequencerCore.js';
 import { PianoPalette } from './PianoPalette.js';
 import { SequencerCanvas } from './SequencerCanvas.js';
+import { SequencerPatternBar } from './SequencerPatternBar.js';
 import { SequencerTrackManager } from './SequencerTrackManager.js';
 import { SequencerSurfaceView } from './SequencerSurfaceView.js';
 
@@ -28,8 +29,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const paletteContainer = document.getElementById('paletteContainer');
   const palette = new PianoPalette(paletteContainer, soundEngine, core);
 
-  // 4. Montagem do Disco Polar Canvas
+  // 4. Montagem do Disco Polar Canvas e da Barra de Patterns
   const radarContainer = document.getElementById('radarContainer');
+  const patternBar = new SequencerPatternBar(radarContainer, core);
   const canvasComponent = new SequencerCanvas(radarContainer, core, palette);
 
   // 5. Montagem do Gerenciador de Pistas e da Musical Surface
@@ -226,39 +228,90 @@ window.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       core.redo();
     }
-    // Seleção rápida de ferramentas (1 = Inserir, 2 = Tocar/Mover, 3 = Borracha)
+    // Alternância musical de Patterns quantizada (Teclas numéricas 1 a 9 e 0)
     else if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-      if (e.key === '1') palette.setTool('insert');
-      if (e.key === '2') palette.setTool('move');
-      if (e.key === '3') palette.setTool('erase');
+      if (e.key === '1') core.selectPattern(0);
+      else if (e.key === '2') core.selectPattern(1);
+      else if (e.key === '3') core.selectPattern(2);
+      else if (e.key === '4') core.selectPattern(3);
+      else if (e.key === '5') core.selectPattern(4);
+      else if (e.key === '6') core.selectPattern(5);
+      else if (e.key === '7') core.selectPattern(6);
+      else if (e.key === '8') core.selectPattern(7);
+      else if (e.key === '9') core.selectPattern(8);
+      else if (e.key === '0') core.selectPattern(9);
+      // Seleção rápida de ferramentas (Q = Inserir, W = Tocar/Mover, E = Borracha)
+      else if (e.key.toLowerCase() === 'q') palette.setTool('insert');
+      else if (e.key.toLowerCase() === 'w') palette.setTool('move');
+      else if (e.key.toLowerCase() === 'e') palette.setTool('erase');
     }
   });
 
-  // 7. Popula um belo padrão inicial de demonstração (Demo Arpeggio & Bass)
+  // 7. Popula padrões iniciais de demonstração (P1, P2, P3 e P4)
   _setupDemoPattern(core);
 });
 
 function _setupDemoPattern(core) {
-  // Padrão melódico inicial em Dó Menor Pentatônica / 16 passos
-  // Anel 0 (Sub Bass / Grave)
+  // Padrão 1 (P1): Base Groove Dó Menor
+  core.selectPattern(0, true);
   core.setCell(0, 0, { active: true, note: 'C1', midi: 24, vel: 110, durRatio: 1.2 });
   core.setCell(4, 0, { active: true, note: 'G1', midi: 31, vel: 95, durRatio: 1.0 });
   core.setCell(8, 0, { active: true, note: 'A#1', midi: 34, vel: 100, durRatio: 1.0 });
   core.setCell(12, 0, { active: true, note: 'F1', midi: 29, vel: 95, durRatio: 1.0 });
 
-  // Anel 2 (Arp)
   core.setCell(2, 2, { active: true, note: 'D#2', midi: 39, vel: 90, durRatio: 0.8 });
   core.setCell(6, 2, { active: true, note: 'G2', midi: 43, vel: 90, durRatio: 0.8 });
   core.setCell(10, 2, { active: true, note: 'C3', midi: 48, vel: 95, durRatio: 0.8 });
   core.setCell(14, 2, { active: true, note: 'D#3', midi: 51, vel: 90, durRatio: 0.8 });
 
-  // Anel 4 (Piano Melody)
   core.setCell(0, 4, { active: true, note: 'C3', midi: 48, vel: 95, durRatio: 1.0 });
   core.setCell(3, 4, { active: true, note: 'D#3', midi: 51, vel: 85, durRatio: 0.8 });
   core.setCell(7, 4, { active: true, note: 'G3', midi: 55, vel: 90, durRatio: 1.0 });
   core.setCell(11, 4, { active: true, note: 'A#3', midi: 58, vel: 85, durRatio: 0.8 });
 
-  // Anel 6 (High Bells / Chime)
   core.setCell(8, 6, { active: true, note: 'C4', midi: 60, vel: 80, durRatio: 1.5 });
   core.setCell(15, 6, { active: true, note: 'G4', midi: 67, vel: 85, durRatio: 1.5 });
+
+  // Padrão 2 (P2): Variação Rítmica mais dinâmica
+  core.selectPattern(1, true);
+  core.setCell(0, 0, { active: true, note: 'C1', midi: 24, vel: 110, durRatio: 1.0 });
+  core.setCell(3, 0, { active: true, note: 'C1', midi: 24, vel: 85, durRatio: 0.8 });
+  core.setCell(6, 0, { active: true, note: 'D#1', midi: 27, vel: 95, durRatio: 1.0 });
+  core.setCell(10, 0, { active: true, note: 'F1', midi: 29, vel: 95, durRatio: 1.0 });
+  core.setCell(14, 0, { active: true, note: 'G1', midi: 31, vel: 100, durRatio: 1.0 });
+
+  core.setCell(1, 2, { active: true, note: 'G2', midi: 43, vel: 85, durRatio: 0.7 });
+  core.setCell(5, 2, { active: true, note: 'A#2', midi: 46, vel: 90, durRatio: 0.7 });
+  core.setCell(9, 2, { active: true, note: 'C3', midi: 48, vel: 90, durRatio: 0.7 });
+  core.setCell(13, 2, { active: true, note: 'F3', midi: 53, vel: 95, durRatio: 0.7 });
+
+  core.setCell(2, 4, { active: true, note: 'D#3', midi: 51, vel: 90, durRatio: 1.0 });
+  core.setCell(6, 4, { active: true, note: 'G3', midi: 55, vel: 90, durRatio: 1.0 });
+  core.setCell(10, 4, { active: true, note: 'A#3', midi: 58, vel: 90, durRatio: 1.0 });
+  core.setCell(14, 4, { active: true, note: 'D4', midi: 62, vel: 95, durRatio: 1.0 });
+
+  core.setCell(4, 6, { active: true, note: 'D#4', midi: 63, vel: 80, durRatio: 1.2 });
+  core.setCell(12, 6, { active: true, note: 'A#4', midi: 70, vel: 85, durRatio: 1.2 });
+
+  // Padrão 3 (P3): Clímax Harmônico
+  core.selectPattern(2, true);
+  core.setCell(0, 0, { active: true, note: 'G#0', midi: 20, vel: 110, durRatio: 1.5 });
+  core.setCell(8, 0, { active: true, note: 'A#0', midi: 22, vel: 110, durRatio: 1.5 });
+
+  core.setCell(0, 2, { active: true, note: 'C3', midi: 48, vel: 90, durRatio: 1.2 });
+  core.setCell(4, 2, { active: true, note: 'D#3', midi: 51, vel: 90, durRatio: 1.2 });
+  core.setCell(8, 2, { active: true, note: 'F3', midi: 53, vel: 95, durRatio: 1.2 });
+  core.setCell(12, 2, { active: true, note: 'G3', midi: 55, vel: 95, durRatio: 1.2 });
+
+  core.setCell(2, 4, { active: true, note: 'G3', midi: 55, vel: 95, durRatio: 1.0 });
+  core.setCell(6, 4, { active: true, note: 'C4', midi: 60, vel: 95, durRatio: 1.0 });
+  core.setCell(10, 4, { active: true, note: 'D#4', midi: 63, vel: 95, durRatio: 1.0 });
+  core.setCell(14, 4, { active: true, note: 'G4', midi: 67, vel: 100, durRatio: 1.0 });
+
+  core.setCell(0, 6, { active: true, note: 'C5', midi: 72, vel: 85, durRatio: 2.0 });
+  core.setCell(8, 6, { active: true, note: 'D5', midi: 74, vel: 85, durRatio: 2.0 });
+
+  // Retorna para o Padrão 1 como padrão ativo inicial
+  core.selectPattern(0, true);
+  core.clearHistory?.(); // ou reinicia o histórico para este estado limpo
 }
