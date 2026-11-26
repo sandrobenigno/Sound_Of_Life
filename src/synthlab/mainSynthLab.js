@@ -130,6 +130,12 @@ window.addEventListener('DOMContentLoaded', () => {
   // 10. Monta o Teclado de Piano Inferior para Tocar ao Vivo
   const keyboardContainer = document.getElementById('pianoKeyboardContainer');
   _setupBottomPiano(keyboardContainer, bridge);
+
+  // 11. Calibra com precisão o canvas e as cordinhas assim que todo o layout flex estabiliza
+  requestAnimationFrame(() => {
+    canvasView.resize();
+    setTimeout(() => canvasView.resize(), 60);
+  });
 });
 
 function _loadLessonPreset(lesson, model, inspectorView) {

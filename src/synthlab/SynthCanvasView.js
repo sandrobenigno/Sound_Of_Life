@@ -116,15 +116,31 @@ export class SynthCanvasView {
     this.container.appendChild(this.nodesLayer);
 
     this.resize();
+
+    // Observador de Redimensionamento Automático (detecta quando painéis/teclado mudam a altura do viewport)
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.resize();
+      });
+      this.resizeObserver.observe(this.container);
+    }
     window.addEventListener('resize', () => this.resize());
   }
 
   resize() {
     const rect = this.container.getBoundingClientRect();
-    this.width = rect.width || window.innerWidth;
-    this.height = rect.height || 600;
-    this.canvas.width = this.width;
-    this.canvas.height = this.height;
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
+
+    if (w > 0 && h > 0) {
+      if (this.width !== w || this.height !== h) {
+        this.width = w;
+        this.height = h;
+        this.canvas.width = w;
+        this.canvas.height = h;
+        this._cacheSocketOffsets();
+      }
+    }
   }
 
   _bindEvents() {
@@ -265,10 +281,11 @@ export class SynthCanvasView {
         this.socketElements.set(portKey, pin);
 
         const pinRect = pin.getBoundingClientRect();
-        const relX = (pinRect.left + pinRect.width / 2 - cardRect.left) / this.zoom;
-        const relY = (pinRect.top + pinRect.height / 2 - cardRect.top) / this.zoom;
-
-        this.socketOffsets.set(portKey, { relX, relY });
+        if (pinRect.width > 0 && cardRect.width > 0) {
+          const relX = (pinRect.left + pinRect.width / 2 - cardRect.left) / this.zoom;
+          const relY = (pinRect.top + pinRect.height / 2 - cardRect.top) / this.zoom;
+          this.socketOffsets.set(portKey, { relX, relY });
+        }
       });
     });
   }
@@ -497,28 +514,32 @@ export class SynthCanvasView {
 
   _getSocketCoordinates(nodeId, portId) {
     const key = `${nodeId}:${portId}`;
-    const offset = this.socketOffsets.get(key);
+    let offset = this.socketOffsets.get(key);
     const node = this.model.nodes.get(nodeId);
 
-    // Usa offset relativo memorizado em cache (zero reflow DOM a cada frame!)
+    // Se ainda não tem offset memorizado (ou no primeiro frame antes do layout final), mede sob demanda
+    if (!offset && node) {
+      const pin = this.socketElements.get(key);
+      if (pin) {
+        const card = pin.closest('.synth-node-card');
+        if (card) {
+          const cardRect = card.getBoundingClientRect();
+          const pinRect = pin.getBoundingClientRect();
+          if (pinRect.width > 0 && cardRect.width > 0) {
+            const relX = (pinRect.left + pinRect.width / 2 - cardRect.left) / this.zoom;
+            const relY = (pinRect.top + pinRect.height / 2 - cardRect.top) / this.zoom;
+            offset = { relX, relY };
+            this.socketOffsets.set(key, offset);
+          }
+        }
+      }
+    }
+
     if (offset && node) {
       return {
         x: node.x + offset.relX,
         y: node.y + offset.relY
       };
-    }
-
-    const pin = this.socketElements.get(key);
-    if (pin && node) {
-      const card = pin.closest('.synth-node-card');
-      if (card) {
-        const cardRect = card.getBoundingClientRect();
-        const pinRect = pin.getBoundingClientRect();
-        const relX = (pinRect.left + pinRect.width / 2 - cardRect.left) / this.zoom;
-        const relY = (pinRect.top + pinRect.height / 2 - cardRect.top) / this.zoom;
-        this.socketOffsets.set(key, { relX, relY });
-        return { x: node.x + relX, y: node.y + relY };
-      }
     }
 
     return node ? { x: node.x + 100, y: node.y + 50 } : { x: 0, y: 0 };
