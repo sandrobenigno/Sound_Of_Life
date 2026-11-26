@@ -187,15 +187,12 @@ export class SynthGraphModel {
     const target = this.nodes.get(toNodeId);
     if (!source || !target) return null;
 
-    // Verifica se a conexão já existe
-    const exists = this.cables.some(c =>
-      c.fromNode === fromNodeId && c.fromPort === fromPortId &&
-      c.toNode === toNodeId && c.toPort === toPortId
-    );
-    if (exists) return null;
+    // Se o inlet de destino já tiver um cabo conectado, desconecta o anterior (substituição limpa)
+    const existing = this.cables.find(c => c.toNode === toNodeId && c.toPort === toPortId);
+    if (existing) {
+      this.disconnect(existing.id);
+    }
 
-    // Uma entrada de áudio/cv pode receber múltiplos ou únicos cabos?
-    // Em sintetizadores modulares, entradas aceitam 1 conexão (ou somam). Permitimos conectar.
     const cableId = `cable_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const cable = {
       id: cableId,
@@ -218,6 +215,17 @@ export class SynthGraphModel {
       return removed;
     }
     return null;
+  }
+
+  disconnectCablesAtPort(nodeId, portId) {
+    const toRemove = this.cables.filter(c =>
+      (c.fromNode === nodeId && c.fromPort === portId) ||
+      (c.toNode === nodeId && c.toPort === portId)
+    );
+    for (const cable of toRemove) {
+      this.disconnect(cable.id);
+    }
+    return toRemove.length;
   }
 
   clear() {

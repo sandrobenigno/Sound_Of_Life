@@ -303,18 +303,25 @@ body.synth-body {
 }
 
 .btn-node-close {
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
   font-size: 11px;
+  font-weight: bold;
   cursor: pointer;
-  padding: 1px 4px;
-  border-radius: 2px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  line-height: 1.2;
+  transition: all 0.15s ease;
+  z-index: 25;
 }
 
 .btn-node-close:hover {
-  background: rgba(255, 77, 77, 0.2);
-  color: var(--color-magenta);
+  background: rgba(255, 0, 85, 0.4);
+  border-color: #ff0055;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255, 0, 85, 0.6);
+  transform: scale(1.1);
 }
 
 .node-body {
@@ -368,6 +375,11 @@ body.synth-body {
   border-radius: 3px;
   border-color: var(--color-amber);
   box-shadow: 0 0 6px var(--color-amber);
+}
+
+.socket-pin.has-cable {
+  background: #ffffff !important;
+  box-shadow: 0 0 10px var(--pin-color, #00e5ff), inset 0 0 4px #000 !important;
 }
 
 .socket-pin:hover {

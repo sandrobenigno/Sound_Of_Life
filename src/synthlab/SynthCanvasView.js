@@ -71,6 +71,7 @@ export class SynthCanvasView {
 
       // 3. Conexão / desconexão de cabos: redesenhado suavemente no canvas
       if (type === 'cable_add' || type === 'cable_remove') {
+        this._updatePinClasses();
         return;
       }
 
@@ -189,6 +190,37 @@ export class SynthCanvasView {
       this.zoom = Math.max(0.4, Math.min(2.0, this.zoom * zoomFactor));
       this._updateTransform();
     }, { passive: false });
+
+    // 2. Clique com botão direito no canvas sobre um cabo: desconecta-o imediatamente
+    this.container.addEventListener('contextmenu', (e) => {
+      if (e.target.closest('.synth-node-card')) return;
+      const rect = this.container.getBoundingClientRect();
+      const worldX = (e.clientX - rect.left - this.panX) / this.zoom;
+      const worldY = (e.clientY - rect.top - this.panY) / this.zoom;
+
+      const cable = this._findCableAt(worldX, worldY, 18);
+      if (cable) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.model.disconnect(cable.id);
+        this._updatePinClasses();
+      }
+    });
+
+    // 3. Duplo-clique sobre um cabo no canvas: desconecta-o
+    this.container.addEventListener('dblclick', (e) => {
+      if (e.target.closest('.synth-node-card')) return;
+      const rect = this.container.getBoundingClientRect();
+      const worldX = (e.clientX - rect.left - this.panX) / this.zoom;
+      const worldY = (e.clientY - rect.top - this.panY) / this.zoom;
+
+      const cable = this._findCableAt(worldX, worldY, 18);
+      if (cable) {
+        e.stopPropagation();
+        this.model.disconnect(cable.id);
+        this._updatePinClasses();
+      }
+    });
   }
 
   _updateTransform() {
@@ -266,6 +298,52 @@ export class SynthCanvasView {
 
     // Mede e memoriza os pontos de socket relativos a cada nó (evita reflow no loop de desenho)
     this._cacheSocketOffsets();
+    this._updatePinClasses();
+  }
+
+  _updatePinClasses() {
+    this.socketElements.forEach((pin, key) => {
+      const [nodeId, portId] = key.split(':');
+      const isConnected = this.model.cables.some(c =>
+        (c.fromNode === nodeId && c.fromPort === portId) ||
+        (c.toNode === nodeId && c.toPort === portId)
+      );
+      pin.classList.toggle('has-cable', isConnected);
+      const isInput = pin.dataset.direction === 'in';
+      if (isConnected) {
+        pin.setAttribute('title', isInput
+          ? '🔌 Conectado. Clique para desplugar ou botão direito para remover cabo.'
+          : '🔌 Conectado. Botão direito para desconectar cabos.');
+      } else {
+        pin.setAttribute('title', isInput ? 'Entrada (arraste um cabo até aqui)' : 'Saída (clique e arraste para ligar)');
+      }
+    });
+  }
+
+  _findCableAt(worldX, worldY, threshold = 18) {
+    for (const cable of this.model.cables) {
+      const p1 = this._getSocketCoordinates(cable.fromNode, cable.fromPort);
+      const p2 = this._getSocketCoordinates(cable.toNode, cable.toPort);
+
+      const dx = Math.abs(p2.x - p1.x);
+      const dist = Math.sqrt(dx * dx + Math.pow(p2.y - p1.y, 2));
+      const curvature = Math.max(40, Math.min(220, dx * 0.5 + dist * 0.15));
+      const cp1x = p1.x + curvature;
+      const cp1y = p1.y;
+      const cp2x = p2.x - curvature;
+      const cp2y = p2.y;
+
+      for (let i = 0; i <= 20; i++) {
+        const t = i / 20;
+        const bx = Math.pow(1 - t, 3) * p1.x + 3 * Math.pow(1 - t, 2) * t * cp1x + 3 * (1 - t) * Math.pow(t, 2) * cp2x + Math.pow(t, 3) * p2.x;
+        const by = Math.pow(1 - t, 3) * p1.y + 3 * Math.pow(1 - t, 2) * t * cp1y + 3 * (1 - t) * Math.pow(t, 2) * cp2y + Math.pow(t, 3) * p2.y;
+
+        if (Math.hypot(worldX - bx, worldY - by) < threshold) {
+          return cable;
+        }
+      }
+    }
+    return null;
   }
 
   _cacheSocketOffsets() {
@@ -415,6 +493,8 @@ export class SynthCanvasView {
     // 1. Arrasto do Nó
     const handle = card.querySelector('[data-drag-handle]');
     handle.addEventListener('pointerdown', (e) => {
+      // Se clicou no botão de fechar, não inicia o arrasto do nó
+      if (e.target.closest('.btn-node-close')) return;
       e.stopPropagation();
       this.draggedNode = node;
       this.dragOffset = {
@@ -427,6 +507,8 @@ export class SynthCanvasView {
     // 2. Botão Fechar Nó
     const btnClose = card.querySelector('.btn-node-close');
     if (btnClose) {
+      btnClose.addEventListener('pointerdown', (e) => e.stopPropagation());
+      btnClose.addEventListener('mousedown', (e) => e.stopPropagation());
       btnClose.addEventListener('click', (e) => {
         e.stopPropagation();
         this.model.removeNode(node.id);
@@ -476,9 +558,52 @@ export class SynthCanvasView {
       input.addEventListener('change', updateParamValue);
     });
 
-    // 4. Iniciar Puxada de Cabo a partir de um Pino Outlet
-    card.querySelectorAll('.socket-pin[data-direction="out"]').forEach(pin => {
+    // 4. Pino Inlet: clique para desplugar cabo existente, ou botão direito para remover
+    card.querySelectorAll('.socket-pin[data-direction="in"]').forEach(pin => {
+      pin.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.model.disconnectCablesAtPort(pin.dataset.nodeId, pin.dataset.portId);
+        this._updatePinClasses();
+      });
+
       pin.addEventListener('pointerdown', (e) => {
+        if (e.button === 2) return;
+        e.stopPropagation();
+
+        const connectedCables = this.model.cables.filter(c =>
+          c.toNode === pin.dataset.nodeId && c.toPort === pin.dataset.portId
+        );
+
+        if (connectedCables.length > 0) {
+          // Despluga o cabo da entrada e permite ao usuário replugar ou soltar para excluir
+          const lastCable = connectedCables[connectedCables.length - 1];
+          this.model.disconnect(lastCable.id);
+          this._updatePinClasses();
+
+          const rect = this.container.getBoundingClientRect();
+          this.pendingCable = {
+            fromNode: lastCable.fromNode,
+            fromPort: lastCable.fromPort,
+            currentX: (e.clientX - rect.left - this.panX) / this.zoom,
+            currentY: (e.clientY - rect.top - this.panY) / this.zoom
+          };
+          pin.setPointerCapture(e.pointerId);
+        }
+      });
+    });
+
+    // 5. Iniciar Puxada de Cabo a partir de um Pino Outlet
+    card.querySelectorAll('.socket-pin[data-direction="out"]').forEach(pin => {
+      pin.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.model.disconnectCablesAtPort(pin.dataset.nodeId, pin.dataset.portId);
+        this._updatePinClasses();
+      });
+
+      pin.addEventListener('pointerdown', (e) => {
+        if (e.button === 2) return;
         e.stopPropagation();
         const rect = this.container.getBoundingClientRect();
         this.pendingCable = {
