@@ -149,14 +149,19 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!file) return;
     try {
       btnLoadSf2.textContent = '⏳ Carregando...';
-      await soundEngine.loadCustomSf2File(file);
+      const parsed = await soundEngine.loadCustomSf2File(file);
       btnLoadSf2.textContent = `📦 ${file.name.slice(0, 10)}...`;
+      trackManager.notifyChange();
       surfaceView.render();
-      alert(`SoundFont "${file.name}" carregado com sucesso!`);
+      const count = parsed.compiledPresets && parsed.compiledPresets.length > 0
+        ? parsed.compiledPresets.length
+        : (parsed.samples ? parsed.samples.length : 0);
+      alert(`SoundFont "${file.name}" carregado com sucesso!\n${count} timbres/presets disponíveis no seletor de instrumentos.`);
     } catch (err) {
       alert(`Erro ao carregar SoundFont: ${err.message}`);
       btnLoadSf2.textContent = '📂 Carregar .SF2';
     }
+    fileInputSf2.value = '';
   });
 
   // Exportar Sequência (.solseq.json)

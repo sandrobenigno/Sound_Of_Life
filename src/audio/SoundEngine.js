@@ -161,6 +161,20 @@ export class SoundEngine {
     return this.fxWetGain ? this.fxWetGain.gain.value : 0.25;
   }
 
+  /**
+   * Carrega e analisa um arquivo .sf2 customizado fornecido pelo usuário
+   */
+  async loadCustomSf2File(file) {
+    if (!this.sf2Player) {
+      throw new Error('Reprodutor SF2 não está inicializado.');
+    }
+    return await this.sf2Player.loadSoundFontFile(file);
+  }
+
+  async loadSoundFontFile(file) {
+    return await this.loadCustomSf2File(file);
+  }
+
   getAvailableSoundSources() {
     const synths = [
       { id: 'synth:saw', name: '⚡ Synth: Saw Lead (Rico/Brilhante)', group: 'Sintetizador' },
