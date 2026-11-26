@@ -26,6 +26,11 @@
   user-select: none;
 }
 
+select, input, textarea, button {
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
 body.synth-body {
   background: var(--bg-dark);
   color: var(--text-main);

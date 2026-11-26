@@ -418,17 +418,19 @@ export class SynthCanvasView {
 
     // 3. Inputs de Parâmetros
     card.querySelectorAll('[data-param]').forEach(input => {
-      // Impede que o clique no slider inicie pan ou arrasto do card
+      // Impede que o clique no controle inicie pan ou arrasto acidental
       input.addEventListener('pointerdown', (e) => e.stopPropagation());
       input.addEventListener('mousedown', (e) => e.stopPropagation());
       input.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
 
-      // Remove o foco ao soltar o mouse para devolver o teclado imediatamente
-      input.addEventListener('pointerup', () => input.blur());
-      input.addEventListener('mouseup', () => input.blur());
-      input.addEventListener('change', () => input.blur());
+      // Remove o foco APENAS para sliders de range ao soltar o mouse (devolve teclas do teclado)
+      // NUNCA chamar blur em pointerup/mouseup para <select>, pois fecharia o menu dropdown imediatamente!
+      if (input.type === 'range') {
+        input.addEventListener('pointerup', () => input.blur());
+        input.addEventListener('mouseup', () => input.blur());
+      }
 
-      input.addEventListener('input', (e) => {
+      const updateParamValue = (e) => {
         e.stopPropagation();
         const param = e.target.dataset.param;
         let val = e.target.value;
@@ -446,7 +448,15 @@ export class SynthCanvasView {
           else if (['attack', 'decay', 'release'].includes(param)) valText.textContent = `${Math.round(val * 1000)}ms`;
           else if (param === 'sustain') valText.textContent = `${Math.round(val * 100)}%`;
         }
-      });
+
+        if (input.tagName === 'SELECT') {
+          // Desfoca apenas após o usuário confirmar a escolha de uma opção
+          input.blur();
+        }
+      };
+
+      input.addEventListener('input', updateParamValue);
+      input.addEventListener('change', updateParamValue);
     });
 
     // 4. Iniciar Puxada de Cabo a partir de um Pino Outlet
