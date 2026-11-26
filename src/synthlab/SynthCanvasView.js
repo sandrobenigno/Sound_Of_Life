@@ -25,6 +25,8 @@ export class SynthCanvasView {
 
     this.pendingCable = null; // { fromNode, fromPort, currentX, currentY }
     this.socketElements = new Map(); // `${nodeId}:${portId}` -> DOM element
+    this.socketOffsets = new Map();  // `${nodeId}:${portId}` -> { relX, relY }
+    this.enableAnimations = true;
 
     this.animationFrame = null;
     this.particleOffset = 0;
@@ -33,8 +35,70 @@ export class SynthCanvasView {
     this._bindEvents();
     this._startLoop();
 
-    this.model.onChange(() => this.render());
+    this._bindModelEvents();
     this.render();
+  }
+
+  setAnimationsEnabled(enabled) {
+    this.enableAnimations = !!enabled;
+  }
+
+  _bindModelEvents() {
+    this.model.onChange((event) => {
+      if (!event) {
+        this.render();
+        return;
+      }
+
+      const { type, payload } = event;
+
+      // 1. Mudança de parâmetro (slider/knob): NUNCA recriar o DOM!
+      // Recriar o DOM durante o arraste destruía o <input> sob o cursor do mouse
+      if (type === 'param_change') {
+        this._updateParamDisplay(payload);
+        return;
+      }
+
+      // 2. Movimento de nó (arrasto do card): atualiza apenas style.left e style.top
+      if (type === 'node_move') {
+        const card = document.getElementById(`node-${payload.id}`);
+        if (card) {
+          card.style.left = `${payload.x}px`;
+          card.style.top = `${payload.y}px`;
+        }
+        return;
+      }
+
+      // 3. Conexão / desconexão de cabos: redesenhado suavemente no canvas
+      if (type === 'cable_add' || type === 'cable_remove') {
+        return;
+      }
+
+      // 4. Adição/remoção de nós, clear ou carga de novo patch: re-renderiza o rack
+      this.render();
+    });
+  }
+
+  _updateParamDisplay(payload) {
+    if (!payload) return;
+    const { nodeId, paramKey, value } = payload;
+    const card = document.getElementById(`node-${nodeId}`);
+    if (!card) return;
+
+    const input = card.querySelector(`[data-param="${paramKey}"]`);
+    if (input && document.activeElement !== input) {
+      input.value = value;
+    }
+
+    const row = input?.closest('.control-row') || input?.closest('.adsr-col');
+    const valText = row?.querySelector('.val-text') || row?.querySelector('.adsr-val');
+    if (valText) {
+      if (paramKey === 'cutoff') valText.textContent = `${value} Hz`;
+      else if (paramKey === 'resonance') valText.textContent = `${value}`;
+      else if (paramKey === 'gain' || paramKey === 'volume') valText.textContent = `${Math.round(value * 100)}%`;
+      else if (['attack', 'decay', 'release'].includes(paramKey)) valText.textContent = `${Math.round(value * 1000)}ms`;
+      else if (paramKey === 'sustain') valText.textContent = `${Math.round(value * 100)}%`;
+    }
   }
 
   _setupDOM() {
@@ -182,13 +246,31 @@ export class SynthCanvasView {
 
       this._bindNodeCardEvents(card, node);
       this.nodesLayer.appendChild(card);
+    }
 
-      // Armazena referências aos pinos de socket
-      card.querySelectorAll('.socket-pin').forEach(pin => {
+    // Mede e memoriza os pontos de socket relativos a cada nó (evita reflow no loop de desenho)
+    this._cacheSocketOffsets();
+  }
+
+  _cacheSocketOffsets() {
+    this.socketElements.clear();
+    this.socketOffsets.clear();
+
+    const cards = this.nodesLayer.querySelectorAll('.synth-node-card');
+    cards.forEach(card => {
+      const cardRect = card.getBoundingClientRect();
+      const pins = card.querySelectorAll('.socket-pin');
+      pins.forEach(pin => {
         const portKey = `${pin.dataset.nodeId}:${pin.dataset.portId}`;
         this.socketElements.set(portKey, pin);
+
+        const pinRect = pin.getBoundingClientRect();
+        const relX = (pinRect.left + pinRect.width / 2 - cardRect.left) / this.zoom;
+        const relY = (pinRect.top + pinRect.height / 2 - cardRect.top) / this.zoom;
+
+        this.socketOffsets.set(portKey, { relX, relY });
       });
-    }
+    });
   }
 
   _generateNodeControlsHTML(node) {
@@ -336,7 +418,13 @@ export class SynthCanvasView {
 
     // 3. Inputs de Parâmetros
     card.querySelectorAll('[data-param]').forEach(input => {
+      // Impede que o clique no slider inicie pan ou arrasto do card
+      input.addEventListener('pointerdown', (e) => e.stopPropagation());
+      input.addEventListener('mousedown', (e) => e.stopPropagation());
+      input.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+
       input.addEventListener('input', (e) => {
+        e.stopPropagation();
         const param = e.target.dataset.param;
         let val = e.target.value;
         if (e.target.type === 'range' || e.target.type === 'number') {
@@ -394,20 +482,31 @@ export class SynthCanvasView {
 
   _getSocketCoordinates(nodeId, portId) {
     const key = `${nodeId}:${portId}`;
-    const pin = this.socketElements.get(key);
-    if (!pin) {
-      // Fallback para posição do nó
-      const n = this.model.nodes.get(nodeId);
-      return n ? { x: n.x + 100, y: n.y + 50 } : { x: 0, y: 0 };
+    const offset = this.socketOffsets.get(key);
+    const node = this.model.nodes.get(nodeId);
+
+    // Usa offset relativo memorizado em cache (zero reflow DOM a cada frame!)
+    if (offset && node) {
+      return {
+        x: node.x + offset.relX,
+        y: node.y + offset.relY
+      };
     }
 
-    const rect = this.container.getBoundingClientRect();
-    const pinRect = pin.getBoundingClientRect();
+    const pin = this.socketElements.get(key);
+    if (pin && node) {
+      const card = pin.closest('.synth-node-card');
+      if (card) {
+        const cardRect = card.getBoundingClientRect();
+        const pinRect = pin.getBoundingClientRect();
+        const relX = (pinRect.left + pinRect.width / 2 - cardRect.left) / this.zoom;
+        const relY = (pinRect.top + pinRect.height / 2 - cardRect.top) / this.zoom;
+        this.socketOffsets.set(key, { relX, relY });
+        return { x: node.x + relX, y: node.y + relY };
+      }
+    }
 
-    const worldX = (pinRect.left + pinRect.width / 2 - rect.left - this.panX) / this.zoom;
-    const worldY = (pinRect.top + pinRect.height / 2 - rect.top - this.panY) / this.zoom;
-
-    return { x: worldX, y: worldY };
+    return node ? { x: node.x + 100, y: node.y + 50 } : { x: 0, y: 0 };
   }
 
   _drawCables() {
@@ -465,8 +564,8 @@ export class SynthCanvasView {
     ctx.lineWidth = isPending ? 3.5 : 2.8;
     ctx.stroke();
 
-    // Partículas animadas de fluxo de sinal (quando conectado)
-    if (!isPending) {
+    // Partículas animadas de fluxo de sinal (quando conectado e com animações ativas)
+    if (!isPending && this.enableAnimations) {
       const t = this.particleOffset;
       // Equação cúbica de Bézier para a posição da partícula
       const px = Math.pow(1 - t, 3) * x1 + 3 * Math.pow(1 - t, 2) * t * cp1x + 3 * (1 - t) * Math.pow(t, 2) * cp2x + Math.pow(t, 3) * x2;

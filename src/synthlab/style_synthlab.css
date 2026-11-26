@@ -422,6 +422,7 @@ body.synth-body {
   width: 100%;
   accent-color: var(--color-cyan);
   cursor: pointer;
+  touch-action: none;
 }
 
 /* Grid ADSR Vertical */
@@ -444,12 +445,14 @@ body.synth-body {
 }
 
 .ctrl-slider-v {
+  -webkit-appearance: slider-vertical;
   writing-mode: vertical-lr;
   direction: rtl;
-  width: 16px;
-  height: 55px;
+  width: 20px;
+  height: 60px;
   accent-color: var(--color-amber);
   cursor: pointer;
+  touch-action: none;
 }
 
 .adsr-val {

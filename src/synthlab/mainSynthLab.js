@@ -55,6 +55,17 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // 6.1 Toggle de Animações dos Cabos
+  const btnToggleAnim = document.getElementById('btnToggleAnim');
+  if (btnToggleAnim) {
+    let animActive = true;
+    btnToggleAnim.addEventListener('click', () => {
+      animActive = !animActive;
+      canvasView.setAnimationsEnabled(animActive);
+      btnToggleAnim.textContent = animActive ? '✨ Animação: ON' : '⏸️ Animação: OFF';
+    });
+  }
+
   // 7. Exportar para o Sound of Life (.solsynth.json)
   const btnExport = document.getElementById('btnExportPatch');
   if (btnExport) {
