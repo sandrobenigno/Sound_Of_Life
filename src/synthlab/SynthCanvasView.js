@@ -423,6 +423,11 @@ export class SynthCanvasView {
       input.addEventListener('mousedown', (e) => e.stopPropagation());
       input.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
 
+      // Remove o foco ao soltar o mouse para devolver o teclado imediatamente
+      input.addEventListener('pointerup', () => input.blur());
+      input.addEventListener('mouseup', () => input.blur());
+      input.addEventListener('change', () => input.blur());
+
       input.addEventListener('input', (e) => {
         e.stopPropagation();
         const param = e.target.dataset.param;

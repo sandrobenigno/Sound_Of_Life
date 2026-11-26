@@ -616,6 +616,80 @@ body.synth-body {
   gap: 3px;
 }
 
+.piano-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.audition-loop-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-loop-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid var(--color-cyan);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: bold;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-loop-play:hover {
+  background: rgba(0, 229, 255, 0.25);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+.btn-loop-play.is-playing {
+  background: #ff0055;
+  border-color: #ff3377;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(255, 0, 85, 0.6);
+}
+
+.loop-pattern-select {
+  background: #060d1a;
+  border: 1px solid var(--border-cyan);
+  color: var(--color-cyan);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.loop-tempo-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+}
+
+.loop-tempo-box input[type="range"] {
+  width: 70px;
+  accent-color: var(--color-cyan);
+  cursor: pointer;
+}
+
+.loop-tempo-box span {
+  color: var(--color-cyan);
+  font-weight: bold;
+  min-width: 22px;
+}
+
 .piano-hint-label {
   font-size: 9.5px;
   font-family: var(--font-mono);

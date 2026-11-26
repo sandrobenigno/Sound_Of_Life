@@ -153,7 +153,30 @@ function _setupBottomPiano(container, bridge) {
 
   container.innerHTML = `
     <div class="synth-piano-bar">
-      <div class="piano-hint-label">🎹 TECLADO DE AUDIÇÃO AO VIVO (Clique para tocar ou use as teclas do computador):</div>
+      <div class="piano-toolbar-row">
+        <div class="piano-hint-label">🎹 AUDIÇÃO (Teclas: A, W, S, E, D, F, G, H, J, K...)</div>
+
+        <div class="audition-loop-controls">
+          <button type="button" class="btn-loop-play" id="btnToggleLoop" title="Iniciar/Parar sequência em loop contínuo para você ajustar os controles enquanto ouve">
+            <span class="loop-icon">▶</span> <span class="loop-text">Loop Sequência</span>
+          </button>
+
+          <select id="selectLoopPattern" class="loop-pattern-select" title="Escolha a sequência melódica ou acorde para tocar em loop">
+            <option value="arp_minor">🎵 Arpejo Menor 7ª (C3 - Eb3 - G3 - Bb3)</option>
+            <option value="chord_triad">🌊 Acorde Sustentado (C3 + Eb3 + G3)</option>
+            <option value="disco_bass">⚡ Bassline Oitavada (C2 - C3 - Eb2 - G2)</option>
+            <option value="pentatonic">✨ Escala Pentatônica (C3 - D3 - F3 - G3 - Bb3 - C4)</option>
+            <option value="single_pulse">🫧 Pulso de Teste (C3)</option>
+          </select>
+
+          <div class="loop-tempo-box">
+            <label for="loopBpmSlider">BPM:</label>
+            <input type="range" id="loopBpmSlider" min="60" max="180" step="5" value="120" title="Andamento do Loop">
+            <span id="loopBpmVal">120</span>
+          </div>
+        </div>
+      </div>
+
       <div class="piano-keys-scroll" id="pianoKeysScroll">
         <div class="piano-keys-track" id="pianoKeysTrack"></div>
       </div>
@@ -202,10 +225,20 @@ function _setupBottomPiano(container, bridge) {
     'u': 'A#3', 'j': 'B3', 'k': 'C4', 'o': 'C#4', 'l': 'D4'
   };
 
+  // Teclado físico: permite tocar mesmo quando o foco está em um range slider
   window.addEventListener('keydown', (e) => {
-    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
     const key = e.key.toLowerCase();
+    const isRangeInput = e.target.tagName === 'INPUT' && e.target.type === 'range';
+
+    // Apenas bloqueia teclas se estiver digitando em campos de texto reais
+    if (['TEXTAREA', 'SELECT'].includes(e.target.tagName) || (e.target.tagName === 'INPUT' && !isRangeInput)) {
+      return;
+    }
+
     if (KEY_MAP[key]) {
+      if (isRangeInput) {
+        e.preventDefault(); // Impede que a tecla altere o slider acidentalmente
+      }
       const note = KEY_MAP[key];
       bridge.playNote({ note, velocity: 100, duration: 300 });
 
@@ -214,6 +247,85 @@ function _setupBottomPiano(container, bridge) {
         el.classList.add('is-pressed');
         setTimeout(() => el.classList.remove('is-pressed'), 160);
       }
+    }
+  });
+
+  // -------------------------------------------------------------
+  // Motor de Sequência em Loop (Arpejo e Acordes de Teste)
+  // -------------------------------------------------------------
+  const btnToggleLoop = container.querySelector('#btnToggleLoop');
+  const selectLoopPattern = container.querySelector('#selectLoopPattern');
+  const loopBpmSlider = container.querySelector('#loopBpmSlider');
+  const loopBpmVal = container.querySelector('#loopBpmVal');
+
+  const PATTERNS = {
+    arp_minor: ['C3', 'Eb3', 'G3', 'Bb3', 'C4', 'Bb3', 'G3', 'Eb3'],
+    chord_triad: [['C3', 'Eb3', 'G3', 'Bb3']],
+    disco_bass: ['C2', 'C3', 'C2', 'Eb2', 'F2', 'F#2', 'G2', 'Bb2'],
+    pentatonic: ['C3', 'D3', 'F3', 'G3', 'Bb3', 'C4'],
+    single_pulse: ['C3']
+  };
+
+  let loopInterval = null;
+  let loopStep = 0;
+  let loopBpm = 120;
+
+  loopBpmSlider.addEventListener('input', (e) => {
+    loopBpm = parseInt(e.target.value, 10);
+    loopBpmVal.textContent = loopBpm;
+    if (loopInterval) {
+      _restartLoopTimer();
+    }
+  });
+
+  function _restartLoopTimer() {
+    if (loopInterval) clearInterval(loopInterval);
+    const patternKey = selectLoopPattern.value;
+    const isChord = patternKey === 'chord_triad';
+    // Colcheias para arpejos e semínimas/mínimas para acordes
+    const stepMs = isChord ? (60000 / loopBpm) * 2 : (60000 / loopBpm) / 2;
+
+    loopInterval = setInterval(() => {
+      const pat = PATTERNS[selectLoopPattern.value] || PATTERNS.arp_minor;
+      const item = pat[loopStep % pat.length];
+      loopStep++;
+
+      const notes = Array.isArray(item) ? item : [item];
+      const dur = isChord ? Math.round(stepMs * 0.9) : Math.round(stepMs * 0.85);
+
+      for (const n of notes) {
+        bridge.playNote({ note: n, velocity: 95, duration: dur });
+
+        const el = track.querySelector(`[data-note="${n}"]`);
+        if (el) {
+          el.classList.add('is-pressed');
+          setTimeout(() => el.classList.remove('is-pressed'), Math.min(180, dur * 0.8));
+        }
+      }
+    }, stepMs);
+  }
+
+  btnToggleLoop.addEventListener('click', () => {
+    if (loopInterval) {
+      // Para o Loop
+      clearInterval(loopInterval);
+      loopInterval = null;
+      btnToggleLoop.classList.remove('is-playing');
+      btnToggleLoop.innerHTML = '<span class="loop-icon">▶</span> <span class="loop-text">Loop Sequência</span>';
+    } else {
+      // Inicia o Loop
+      loopStep = 0;
+      bridge.unlock();
+      _restartLoopTimer();
+      btnToggleLoop.classList.add('is-playing');
+      btnToggleLoop.innerHTML = '<span class="loop-icon">⏹</span> <span class="loop-text">Parar Loop</span>';
+    }
+  });
+
+  selectLoopPattern.addEventListener('change', () => {
+    loopStep = 0;
+    if (loopInterval) {
+      _restartLoopTimer();
     }
   });
 }
