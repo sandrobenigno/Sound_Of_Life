@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound of Life (SOL) — Modular Synth Lab & Estúdio de Síntese</title>
+  <link rel="icon" type="image/png" href="public/assets/sol.png">
+  <link rel="stylesheet" href="src/synthlab/style_synthlab.css">
+</head>
+<body class="synth-body">
+
+  <!-- Header Superior -->
+  <header class="synth-header">
+    <div class="synth-top-row">
+      <div class="synth-brand-group">
+        <div class="synth-brand">
+          <h1>SOUND OF LIFE <span>SYNTH LAB</span></h1>
+          <span class="synth-badge">MODULAR STUDIO</span>
+        </div>
+
+        <nav class="synth-nav-group" aria-label="Navegação do Ecossistema">
+          <a href="index.html" class="synth-nav-btn" title="Ir para o Sound of Life original com autômato celular e Game of Life">
+            🪐 SOL Clássico
+          </a>
+          <a href="sequencer.html" class="synth-nav-btn" title="Ir para o Sequenciador Melódico Polar com Piano Roll">
+            🎛️ Sequenciador Polar
+          </a>
+        </nav>
+      </div>
+
+      <div class="synth-transport-group">
+        <!-- Seletor de Lições / Presets Didáticos -->
+        <label for="selectLesson" style="font-size: 11px; font-family: var(--font-mono); color: #c084fc; font-weight: bold;">
+          🎓 LIÇÃO:
+        </label>
+        <select id="selectLesson" class="synth-lesson-select" title="Escolha um preset ou lição interativa sobre síntese"></select>
+
+        <!-- Ações do Patch -->
+        <button type="button" class="btn-synth-action btn-export-sol" id="btnExportPatch" title="Salvar e exportar este instrumento diretamente para o Sequenciador Polar (.solsynth.json)">
+          🪐 Exportar p/ SOL
+        </button>
+
+        <button type="button" class="btn-synth-action" id="btnImportPatch" title="Carregar um instrumento salvo (.solsynth.json)">
+          ⬆️ Abrir
+        </button>
+        <input type="file" id="fileInputPatch" accept=".json,.solsynth.json" style="display: none;">
+
+        <button type="button" class="btn-synth-action" id="btnClearCanvas" title="Limpar todos os nós e cabos da bancada">
+          🧹 Limpar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sub-Barra: Paleta de Inserção de Nós -->
+  <div class="synth-nodes-toolbar">
+    <span class="toolbar-label">ADICIONAR NÓS:</span>
+
+    <button type="button" class="btn-add-node" data-node-type="oscillator" style="--node-color: #00e5ff;">
+      <span>⚡</span> <span>+ Oscilador (VCO)</span>
+    </button>
+
+    <button type="button" class="btn-add-node" data-node-type="noise" style="--node-color: #38bdf8;">
+      <span>💨</span> <span>+ Ruído</span>
+    </button>
+
+    <button type="button" class="btn-add-node" data-node-type="filter" style="--node-color: #a855f7;">
+      <span>🌊</span> <span>+ Filtro (VCF)</span>
+    </button>
+
+    <button type="button" class="btn-add-node" data-node-type="envelope" style="--node-color: #ffb703;">
+      <span>📈</span> <span>+ Envelope ADSR</span>
+    </button>
+
+    <button type="button" class="btn-add-node" data-node-type="lfo" style="--node-color: #fb8500;">
+      <span>〰️</span> <span>+ LFO</span>
+    </button>
+
+    <button type="button" class="btn-add-node" data-node-type="vca" style="--node-color: #06d6a0;">
+      <span>🔊</span> <span>+ VCA / Multiplier</span>
+    </button>
+
+    <button type="button" class="btn-add-node" data-node-type="mixer" style="--node-color: #10b981;">
+      <span>🎚️</span> <span>+ Mixer</span>
+    </button>
+  </div>
+
+  <!-- Área Principal: Bancada Modular + Inspetor de Modulação -->
+  <main class="synth-main-area">
+    <!-- Viewport da Bancada com Pan & Zoom e Cabos Bézier -->
+    <section class="synth-canvas-viewport" id="synthCanvasContainer"></section>
+
+    <!-- Inspetor de Modulação Didática: Antes ➔ Função ➔ Depois -->
+    <section id="inspectorContainer"></section>
+  </main>
+
+  <!-- Barra Inferior: Teclado de Piano para Teste ao Vivo -->
+  <footer class="synth-bottom-bar" id="pianoKeyboardContainer"></footer>
+
+  <script type="module" src="src/synthlab/mainSynthLab.js"></script>
+</body>
+</html>

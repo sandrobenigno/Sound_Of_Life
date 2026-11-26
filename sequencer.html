@@ -17,9 +17,14 @@
           <h1>SOUND OF LIFE <span>SEQUENCER</span></h1>
           <span class="seq-badge">POLAR PIANO ROLL</span>
         </div>
-        <a href="index.html" class="seq-nav-btn" title="Voltar para a versão original do SOL com autômato celular e Game of Life">
-          ↩️ Ir para SOL Clássico
-        </a>
+        <div class="seq-nav-group" style="display: flex; gap: 6px;">
+          <a href="index.html" class="seq-nav-btn" title="Voltar para a versão original do SOL com autômato celular e Game of Life">
+            🪐 SOL Clássico
+          </a>
+          <a href="synth.html" class="seq-nav-btn" title="Ir para o Laboratório Modular de Síntese Sonora (SOL Synth Lab)">
+            🧪 Synth Lab
+          </a>
+        </div>
       </div>
 
       <div class="seq-transport-bar">
@@ -96,6 +101,9 @@
           <button type="button" class="btn-seq" id="btnLoadSf2" title="Carregar arquivo SoundFont (.sf2) do seu computador">
             📂 Carregar .SF2
           </button>
+          <button type="button" class="btn-seq" id="btnLoadSynth" title="Carregar patch do Synth Lab (.solsynth.json)">
+            🧪 Patch Synth
+          </button>
           <button type="button" class="btn-seq" id="btnExport" title="Exportar projeto polar (.solseq.json)">
             ⬇️ Salvar
           </button>
@@ -109,6 +117,7 @@
 
   <!-- Inputs Ocultos de Arquivo -->
   <input type="file" id="fileInputSf2" accept=".sf2" style="display: none;">
+  <input type="file" id="fileInputSynth" accept=".json,.solsynth.json" style="display: none;">
   <input type="file" id="fileInputSeq" accept=".json,.solseq.json" style="display: none;">
 
   <!-- Corpo Principal: Duas Colunas -->

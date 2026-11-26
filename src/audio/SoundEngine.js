@@ -6,6 +6,8 @@
 
 import { WebAudioSynth } from './WebAudioSynth.js';
 import { SF2Player } from './SF2Player.js';
+import { SynthGraphModel } from '../synthlab/SynthGraphModel.js';
+import { SynthAudioBridge } from '../synthlab/SynthAudioBridge.js';
 
 export class SoundEngine {
   constructor() {
@@ -17,9 +19,11 @@ export class SoundEngine {
     this.fxWetGain = null;
     this.synth = null;
     this.sf2Player = null;
+    this.customSynthPatches = new Map();
     this.isUnlocked = false;
 
     this._initAudio();
+    this._loadCachedSynthPatch();
   }
 
   _initAudio() {
@@ -175,6 +179,35 @@ export class SoundEngine {
     return await this.loadCustomSf2File(file);
   }
 
+  /**
+   * Tenta carregar o último timbre salvo no Synth Lab via localStorage
+   */
+  _loadCachedSynthPatch() {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const raw = localStorage.getItem('solsynth_latest_patch');
+      if (raw) {
+        const patchData = JSON.parse(raw);
+        this.loadSynthPatch(patchData, 'customsynth:latest', `🪐 Synth Lab: ${patchData.name || 'Último Patch'}`);
+      }
+    } catch (_) {}
+  }
+
+  /**
+   * Registra um novo patch .solsynth.json criado no Synth Lab
+   */
+  loadSynthPatch(patchData, customId = null, customName = null) {
+    if (!this.ctx) return null;
+    const model = new SynthGraphModel();
+    model.fromJSON(patchData);
+    const bridge = new SynthAudioBridge(model, this.ctx, this.voiceBus);
+    const id = customId || `customsynth:${Date.now()}`;
+    const name = customName || `🧪 Synth: ${patchData.name || 'Patch Custom'}`;
+
+    this.customSynthPatches.set(id, { id, name, model, bridge, patchData });
+    return id;
+  }
+
   getAvailableSoundSources() {
     const synths = [
       { id: 'synth:saw', name: '⚡ Synth: Saw Lead (Rico/Brilhante)', group: 'Sintetizador' },
@@ -185,13 +218,19 @@ export class SoundEngine {
       { id: 'synth:bell', name: '🔔 Synth: FM Chime Bell (Metálico)', group: 'Sintetizador' }
     ];
 
+    const customSynths = Array.from(this.customSynthPatches.values()).map(p => ({
+      id: p.id,
+      name: p.name,
+      group: 'Synth Lab Modular'
+    }));
+
     const sf2s = this.sf2Player ? this.sf2Player.getAvailablePresets().map(p => ({
       id: p.id,
       name: p.name,
       group: 'SoundFont (SF2)'
     })) : [];
 
-    return [...synths, ...sf2s];
+    return [...synths, ...customSynths, ...sf2s];
   }
 
   playNote(params) {
@@ -205,6 +244,13 @@ export class SoundEngine {
     if (soundSource.startsWith('sf2')) {
       if (this.sf2Player) {
         this.sf2Player.playNote(params);
+      }
+    } else if (soundSource.startsWith('customsynth:')) {
+      const custom = this.customSynthPatches.get(soundSource);
+      if (custom && custom.bridge) {
+        custom.bridge.playNote(params);
+      } else if (this.synth) {
+        this.synth.playNote(params);
       }
     } else {
       if (this.synth) {

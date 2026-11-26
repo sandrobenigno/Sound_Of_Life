@@ -57,6 +57,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const masterFxDisplay = document.getElementById('masterFxDisplay');
   const btnLoadSf2 = document.getElementById('btnLoadSf2');
   const fileInputSf2 = document.getElementById('fileInputSf2');
+  const btnLoadSynth = document.getElementById('btnLoadSynth');
+  const fileInputSynth = document.getElementById('fileInputSynth');
   const btnExport = document.getElementById('btnExport');
   const btnImport = document.getElementById('btnImport');
   const fileInputSeq = document.getElementById('fileInputSeq');
@@ -163,6 +165,34 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     fileInputSf2.value = '';
   });
+
+  // Carregamento de Patch Synth (.solsynth.json)
+  if (btnLoadSynth && fileInputSynth) {
+    btnLoadSynth.addEventListener('click', () => {
+      fileInputSynth.click();
+    });
+
+    fileInputSynth.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const json = JSON.parse(ev.target.result);
+          soundEngine.loadSynthPatch(json);
+          trackManager.notifyChange();
+          surfaceView.render();
+          btnLoadSynth.textContent = `🧪 ${json.name ? json.name.slice(0, 10) : 'Patch'}...`;
+          alert(`Patch do Synth Lab "${json.name || file.name}" carregado com sucesso!\nAgora disponível no seletor de timbres dos anéis.`);
+        } catch (err) {
+          alert(`Erro ao carregar patch: ${err.message}`);
+        }
+      };
+      reader.readAsText(file);
+      fileInputSynth.value = '';
+    });
+  }
 
   // Exportar Sequência (.solseq.json)
   btnExport.addEventListener('click', () => {

@@ -1,0 +1,701 @@
+/**
+ * style_synthlab.css
+ * Estilos modernos Cyberpunk Dark Studio para o SOL Synth Lab (Síntese Modular Web).
+ */
+
+:root {
+  --bg-dark: #040810;
+  --bg-panel: #07101e;
+  --bg-card: #091526;
+  --border-dim: rgba(0, 229, 255, 0.18);
+  --border-cyan: #00e5ff;
+  --color-cyan: #00e5ff;
+  --color-green: #00ff88;
+  --color-amber: #ffb703;
+  --color-magenta: #ff007f;
+  --color-purple: #a855f7;
+  --text-main: #e0f2fe;
+  --text-dim: #7da0c2;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body.synth-body {
+  background: var(--bg-dark);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header & Barra Superior */
+.synth-header {
+  background: #03070f;
+  border-bottom: 2px solid var(--border-dim);
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+}
+
+.synth-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.synth-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.synth-brand h1 {
+  font-size: 17px;
+  letter-spacing: 1.5px;
+  color: #fff;
+  font-weight: 900;
+  display: inline-block;
+}
+
+.synth-brand h1 span {
+  color: var(--color-cyan);
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+
+.synth-badge {
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid var(--color-purple);
+  color: #c084fc;
+  font-size: 9.5px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+}
+
+.synth-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.synth-nav-btn {
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid var(--border-dim);
+  color: var(--color-cyan);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.synth-nav-btn:hover {
+  background: rgba(0, 229, 255, 0.18);
+  border-color: var(--border-cyan);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
+.synth-transport-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-dim);
+}
+
+.synth-lesson-select {
+  background: #02050b;
+  border: 1px solid var(--color-purple);
+  color: #e9d5ff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.btn-synth-action {
+  background: #0c1828;
+  border: 1px solid var(--border-dim);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: bold;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.12s ease;
+}
+
+.btn-synth-action:hover {
+  background: #142844;
+  border-color: var(--border-cyan);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+}
+
+.btn-export-sol {
+  background: rgba(0, 255, 136, 0.15);
+  border-color: var(--color-green);
+  color: var(--color-green);
+}
+
+.btn-export-sol:hover {
+  background: var(--color-green);
+  color: #000;
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
+}
+
+/* Sub-Barra de Inserção de Nós */
+.synth-nodes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #040914;
+  border-bottom: 1px solid var(--border-dim);
+  padding: 5px 16px;
+  overflow-x: auto;
+}
+
+.toolbar-label {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  color: var(--text-dim);
+  margin-right: 4px;
+}
+
+.btn-add-node {
+  background: #0a1424;
+  border: 1px solid var(--border-color, var(--border-dim));
+  color: var(--node-color, var(--text-main));
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.12s ease;
+}
+
+.btn-add-node:hover {
+  background: var(--node-color, var(--color-cyan));
+  color: #000;
+  box-shadow: 0 0 8px var(--node-color, var(--color-cyan));
+  transform: translateY(-1px);
+}
+
+/* Área Principal: Split Canvas + Inspector */
+.synth-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Viewport do Canvas Modular */
+.synth-canvas-viewport {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 50%, #071324 0%, #03060c 100%);
+  cursor: grab;
+}
+
+.synth-canvas-viewport:active {
+  cursor: grabbing;
+}
+
+.synth-cables-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.synth-nodes-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  z-index: 10;
+}
+
+/* Cards dos Nós Modulares */
+.synth-node-card {
+  position: absolute;
+  width: 240px;
+  background: rgba(9, 21, 38, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--node-accent, var(--border-dim));
+  border-radius: 7px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 229, 255, 0.15);
+  font-family: var(--font-mono);
+  overflow: visible;
+  transition: box-shadow 0.15s ease;
+}
+
+.synth-node-card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.85), 0 0 14px var(--node-accent, var(--color-cyan));
+  z-index: 20;
+}
+
+.node-header {
+  background: rgba(4, 9, 18, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 6px 6px 0 0;
+  cursor: move;
+}
+
+.node-badge {
+  font-size: 8px;
+  font-weight: 900;
+  color: #000;
+  padding: 1px 4px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+}
+
+.node-title {
+  font-size: 11px;
+  font-weight: bold;
+  color: #fff;
+  flex: 1;
+  margin-left: 6px;
+}
+
+.btn-node-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.btn-node-close:hover {
+  background: rgba(255, 77, 77, 0.2);
+  color: var(--color-magenta);
+}
+
+.node-body {
+  display: flex;
+  padding: 8px 6px;
+  position: relative;
+  gap: 4px;
+}
+
+.node-inlets-col, .node-outlets-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+
+.node-controls-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+/* Sockets e Pinos */
+.socket-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.socket-label {
+  font-size: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.socket-pin {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #040914;
+  border: 2px solid var(--pin-color, #00e5ff);
+  box-shadow: 0 0 6px var(--pin-color, #00e5ff);
+  cursor: crosshair;
+  transition: all 0.12s ease;
+}
+
+.socket-pin.pin-cv {
+  border-radius: 3px;
+  border-color: var(--color-amber);
+  box-shadow: 0 0 6px var(--color-amber);
+}
+
+.socket-pin:hover {
+  transform: scale(1.35);
+  background: #fff;
+  box-shadow: 0 0 12px #fff;
+}
+
+/* Controles dentro do Nó */
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.control-row label {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.control-row-duo {
+  display: flex;
+  gap: 6px;
+}
+
+.control-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.label-with-val {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.val-text {
+  color: var(--color-cyan);
+  font-weight: bold;
+}
+
+.ctrl-select, .ctrl-num {
+  background: #040914;
+  border: 1px solid var(--border-dim);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  outline: none;
+}
+
+.ctrl-slider {
+  width: 100%;
+  accent-color: var(--color-cyan);
+  cursor: pointer;
+}
+
+/* Grid ADSR Vertical */
+.adsr-grid, .mixer-sliders-row {
+  display: flex;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border-dim);
+}
+
+.adsr-col, .mix-ch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.ctrl-slider-v {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 16px;
+  height: 55px;
+  accent-color: var(--color-amber);
+  cursor: pointer;
+}
+
+.adsr-val {
+  font-size: 8px;
+  color: var(--color-amber);
+}
+
+/* Painel de Modulação Didática (Antes ➔ Função ➔ Depois) */
+.mod-inspector-wrapper {
+  background: #030814;
+  border-top: 2px solid var(--border-dim);
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.mod-inspector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.inspector-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inspector-badge {
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid var(--color-cyan);
+  color: var(--color-cyan);
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+}
+
+.inspector-title-group h3 {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+
+.highlight-cyan {
+  color: var(--color-cyan);
+}
+
+.inspector-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+}
+
+.inspector-select {
+  background: #050d1a;
+  border: 1px solid var(--border-cyan);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.mod-inspector-stages {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.inspector-stage-card {
+  background: #060e1c;
+  border: 1px solid var(--border-dim);
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stage-tag {
+  font-size: 9.5px;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  color: var(--color-cyan);
+  letter-spacing: 0.5px;
+}
+
+.tag-amber { color: var(--color-amber); }
+.tag-magenta { color: var(--color-magenta); }
+
+.stage-canvas-box {
+  width: 100%;
+  height: 100px;
+  background: #02060e;
+  border: 1px solid rgba(0, 229, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.stage-canvas-box canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.stage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-family: var(--font-mono);
+}
+
+.info-label {
+  font-size: 10px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.math-formula {
+  color: var(--color-amber);
+}
+
+.info-sub {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.inspector-educational-footer {
+  font-size: 11px;
+  color: #bae6fd;
+  background: rgba(0, 229, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  padding: 4px 10px;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+/* Barra Inferior com Teclado de Piano */
+.synth-bottom-bar {
+  background: #02060c;
+  border-top: 1px solid var(--border-dim);
+  padding: 4px 12px;
+}
+
+.synth-piano-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.piano-hint-label {
+  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-weight: bold;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+.piano-keys-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-cyan) #040810;
+}
+
+.piano-keys-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+.piano-keys-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-cyan);
+  border-radius: 3px;
+}
+
+.piano-keys-track {
+  display: inline-flex;
+  position: relative;
+  height: 60px;
+  background: #000;
+  padding: 2px;
+  border-radius: 4px;
+  border: 1px solid var(--border-dim);
+}
+
+.piano-mini-key {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 3px;
+  transition: all 0.08s ease;
+}
+
+.piano-mini-key.white-key {
+  width: 22px;
+  height: 56px;
+  background: linear-gradient(to bottom, #e2e8f0 0%, #cbd5e1 100%);
+  border: 1px solid #64748b;
+  border-radius: 0 0 3px 3px;
+  z-index: 1;
+}
+
+.piano-mini-key.black-key {
+  width: 14px;
+  height: 36px;
+  background: linear-gradient(to bottom, #1e293b 0%, #020617 100%);
+  border: 1px solid #0f172a;
+  border-radius: 0 0 2px 2px;
+  margin-left: -7px;
+  margin-right: -7px;
+  z-index: 2;
+}
+
+.mini-key-label {
+  font-size: 7.5px;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  color: #475569;
+  pointer-events: none;
+}
+
+.piano-mini-key.black-key .mini-key-label {
+  color: #94a3b8;
+}
+
+.piano-mini-key.is-pressed,
+.piano-mini-key:active {
+  background: var(--oct-color, var(--color-cyan)) !important;
+  box-shadow: 0 0 10px var(--oct-color, var(--color-cyan));
+  transform: translateY(2px);
+}
+.piano-mini-key.is-pressed .mini-key-label {
+  color: #000 !important;
+}
