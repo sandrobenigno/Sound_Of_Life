@@ -264,7 +264,7 @@ export class SynthCanvasView {
       bodyHtml += `<div class="node-inlets-col">`;
       for (const inlet of def.inlets) {
         bodyHtml += `
-          <div class="socket-wrapper socket-inlet" title="Entrada: ${inlet.name}">
+          <div class="socket-wrapper socket-inlet" title="Entrada: ${inlet.title || inlet.name}">
             <div class="socket-pin pin-${inlet.type}" data-node-id="${node.id}" data-port-id="${inlet.id}" data-direction="in"></div>
             <span class="socket-label">${inlet.name}</span>
           </div>
@@ -281,7 +281,7 @@ export class SynthCanvasView {
       bodyHtml += `<div class="node-outlets-col">`;
       for (const outlet of def.outlets) {
         bodyHtml += `
-          <div class="socket-wrapper socket-outlet" title="Saída: ${outlet.name}">
+          <div class="socket-wrapper socket-outlet" title="Saída: ${outlet.title || outlet.name}">
             <span class="socket-label">${outlet.name}</span>
             <div class="socket-pin pin-${outlet.type}" data-node-id="${node.id}" data-port-id="${outlet.id}" data-direction="out"></div>
           </div>
@@ -302,14 +302,16 @@ export class SynthCanvasView {
   }
 
   _updatePinClasses() {
-    this.socketElements.forEach((pin, key) => {
-      const [nodeId, portId] = key.split(':');
+    this.socketElements.forEach((pin) => {
+      const nodeId = pin.dataset.nodeId;
+      const portId = pin.dataset.portId;
+      const isInput = pin.dataset.direction === 'in';
       const isConnected = this.model.cables.some(c =>
-        (c.fromNode === nodeId && c.fromPort === portId) ||
-        (c.toNode === nodeId && c.toPort === portId)
+        isInput
+          ? (c.toNode === nodeId && c.toPort === portId)
+          : (c.fromNode === nodeId && c.fromPort === portId)
       );
       pin.classList.toggle('has-cable', isConnected);
-      const isInput = pin.dataset.direction === 'in';
       if (isConnected) {
         pin.setAttribute('title', isInput
           ? '🔌 Conectado. Clique para desplugar ou botão direito para remover cabo.'
@@ -322,8 +324,8 @@ export class SynthCanvasView {
 
   _findCableAt(worldX, worldY, threshold = 18) {
     for (const cable of this.model.cables) {
-      const p1 = this._getSocketCoordinates(cable.fromNode, cable.fromPort);
-      const p2 = this._getSocketCoordinates(cable.toNode, cable.toPort);
+      const p1 = this._getSocketCoordinates(cable.fromNode, cable.fromPort, 'out');
+      const p2 = this._getSocketCoordinates(cable.toNode, cable.toPort, 'in');
 
       const dx = Math.abs(p2.x - p1.x);
       const dist = Math.sqrt(dx * dx + Math.pow(p2.y - p1.y, 2));
@@ -355,14 +357,23 @@ export class SynthCanvasView {
       const cardRect = card.getBoundingClientRect();
       const pins = card.querySelectorAll('.socket-pin');
       pins.forEach(pin => {
-        const portKey = `${pin.dataset.nodeId}:${pin.dataset.portId}`;
+        const dir = pin.dataset.direction;
+        const portKey = `${pin.dataset.nodeId}:${pin.dataset.portId}:${dir}`;
+        const fallbackKey = `${pin.dataset.nodeId}:${pin.dataset.portId}`;
+
         this.socketElements.set(portKey, pin);
+        if (!this.socketElements.has(fallbackKey)) {
+          this.socketElements.set(fallbackKey, pin);
+        }
 
         const pinRect = pin.getBoundingClientRect();
         if (pinRect.width > 0 && cardRect.width > 0) {
           const relX = (pinRect.left + pinRect.width / 2 - cardRect.left) / this.zoom;
           const relY = (pinRect.top + pinRect.height / 2 - cardRect.top) / this.zoom;
           this.socketOffsets.set(portKey, { relX, relY });
+          if (!this.socketOffsets.has(fallbackKey)) {
+            this.socketOffsets.set(fallbackKey, { relX, relY });
+          }
         }
       });
     });
@@ -419,8 +430,16 @@ export class SynthCanvasView {
           <select data-param="filterType" class="ctrl-select">
             <option value="lowpass" ${p.filterType === 'lowpass' ? 'selected' : ''}>Lowpass (Passa-Baixa)</option>
             <option value="highpass" ${p.filterType === 'highpass' ? 'selected' : ''}>Highpass (Passa-Alta)</option>
-            <option value="bandpass" ${p.filterType === 'bandpass' ? 'selected' : ''}>Bandpass (Faixa)</option>
+            <option value="bandpass" ${p.filterType === 'bandpass' ? 'selected' : ''}>Bandpass (Passa-Faixa)</option>
             <option value="notch" ${p.filterType === 'notch' ? 'selected' : ''}>Notch (Rejeita-Faixa)</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label>Rastrear Nota (Key Track):</label>
+          <select data-param="keyTrack" class="ctrl-select" title="Faz a frequência central do filtro seguir a nota musical do teclado/loop (essencial para instrumentos de sopro ressonantes)">
+            <option value="0" ${!p.keyTrack || p.keyTrack == 0 ? 'selected' : ''}>Fixo (Não segue nota)</option>
+            <option value="1" ${p.keyTrack == 1 ? 'selected' : ''}>100% (Afinado na Nota)</option>
+            <option value="2" ${p.keyTrack == 2 ? 'selected' : ''}>200% (1 Oitava Acima)</option>
           </select>
         </div>
         <div class="control-row">
@@ -429,7 +448,7 @@ export class SynthCanvasView {
         </div>
         <div class="control-row">
           <div class="label-with-val"><span>Ressonância (Q):</span><span class="val-text">${p.resonance}</span></div>
-          <input type="range" min="0.5" max="15" step="0.2" value="${p.resonance}" data-param="resonance" class="ctrl-slider">
+          <input type="range" min="0.5" max="30" step="0.5" value="${p.resonance}" data-param="resonance" class="ctrl-slider" title="Altos valores de Q criam ressonância metálica ou de sopro cantado">
         </div>
       `;
 
@@ -563,7 +582,7 @@ export class SynthCanvasView {
       pin.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this.model.disconnectCablesAtPort(pin.dataset.nodeId, pin.dataset.portId);
+        this.model.disconnectCablesAtPort(pin.dataset.nodeId, pin.dataset.portId, 'in');
         this._updatePinClasses();
       });
 
@@ -598,7 +617,7 @@ export class SynthCanvasView {
       pin.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this.model.disconnectCablesAtPort(pin.dataset.nodeId, pin.dataset.portId);
+        this.model.disconnectCablesAtPort(pin.dataset.nodeId, pin.dataset.portId, 'out');
         this._updatePinClasses();
       });
 
@@ -637,14 +656,14 @@ export class SynthCanvasView {
     requestAnimationFrame(draw);
   }
 
-  _getSocketCoordinates(nodeId, portId) {
-    const key = `${nodeId}:${portId}`;
-    let offset = this.socketOffsets.get(key);
+  _getSocketCoordinates(nodeId, portId, direction = null) {
+    const key = direction ? `${nodeId}:${portId}:${direction}` : `${nodeId}:${portId}`;
+    let offset = this.socketOffsets.get(key) || this.socketOffsets.get(`${nodeId}:${portId}`);
     const node = this.model.nodes.get(nodeId);
 
     // Se ainda não tem offset memorizado (ou no primeiro frame antes do layout final), mede sob demanda
     if (!offset && node) {
-      const pin = this.socketElements.get(key);
+      const pin = this.socketElements.get(key) || this.socketElements.get(`${nodeId}:${portId}`);
       if (pin) {
         const card = pin.closest('.synth-node-card');
         if (card) {
@@ -667,7 +686,7 @@ export class SynthCanvasView {
       };
     }
 
-    return node ? { x: node.x + 100, y: node.y + 50 } : { x: 0, y: 0 };
+    return node ? { x: node.x + (direction === 'out' ? 300 : 15), y: node.y + 50 } : { x: 0, y: 0 };
   }
 
   _drawCables() {
@@ -680,15 +699,15 @@ export class SynthCanvasView {
 
     // 1. Desenha cabos conectados
     for (const cable of this.model.cables) {
-      const p1 = this._getSocketCoordinates(cable.fromNode, cable.fromPort);
-      const p2 = this._getSocketCoordinates(cable.toNode, cable.toPort);
+      const p1 = this._getSocketCoordinates(cable.fromNode, cable.fromPort, 'out');
+      const p2 = this._getSocketCoordinates(cable.toNode, cable.toPort, 'in');
 
       this._drawBezierCable(ctx, p1.x, p1.y, p2.x, p2.y, cable.fromPort.includes('cv') ? '#ffb703' : '#00e5ff');
     }
 
     // 2. Desenha cabo pendente durante o arrasto
     if (this.pendingCable) {
-      const p1 = this._getSocketCoordinates(this.pendingCable.fromNode, this.pendingCable.fromPort);
+      const p1 = this._getSocketCoordinates(this.pendingCable.fromNode, this.pendingCable.fromPort, 'out');
       this._drawBezierCable(ctx, p1.x, p1.y, this.pendingCable.currentX, this.pendingCable.currentY, '#00ff88', true);
     }
 

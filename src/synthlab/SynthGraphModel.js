@@ -12,11 +12,12 @@ export const NODE_TYPES = {
     badge: 'FONTE',
     defaultParams: { waveform: 'sawtooth', octave: 0, detune: 0, ratio: 1.0, gain: 0.8 },
     inlets: [
-      { id: 'pitch_cv', name: 'Pitch CV', type: 'cv' },
-      { id: 'fm_in', name: 'FM In', type: 'audio' }
+      { id: 'pitch_cv', name: 'Pitch CV', title: 'Pitch CV In (Afinação da Nota 1V/Oct / Vibrato)', type: 'cv' },
+      { id: 'fm_in', name: 'FM In', title: 'Modulação em Frequência (FM)', type: 'audio' }
     ],
     outlets: [
-      { id: 'audio_out', name: 'Áudio Out', type: 'audio' }
+      { id: 'audio_out', name: 'Out', title: 'Áudio Out (Forma de onda)', type: 'audio' },
+      { id: 'pitch_cv_out', name: 'Pitch CV', title: 'Pitch CV Out (CV da nota tocada para filtros e osciladores)', type: 'cv' }
     ]
   },
   noise: {
@@ -27,7 +28,7 @@ export const NODE_TYPES = {
     defaultParams: { noiseType: 'white', gain: 0.8 },
     inlets: [],
     outlets: [
-      { id: 'audio_out', name: 'Áudio Out', type: 'audio' }
+      { id: 'audio_out', name: 'Out', title: 'Áudio Out (Ruído Branco/Rosa)', type: 'audio' }
     ]
   },
   filter: {
@@ -35,13 +36,13 @@ export const NODE_TYPES = {
     category: 'filter',
     color: '#a855f7',
     badge: 'TIMBRE',
-    defaultParams: { filterType: 'lowpass', cutoff: 1800, resonance: 3.0, envAmount: 3500 },
+    defaultParams: { filterType: 'lowpass', cutoff: 1800, resonance: 3.0, envAmount: 3500, keyTrack: 0 },
     inlets: [
-      { id: 'audio_in', name: 'Áudio In', type: 'audio' },
-      { id: 'cutoff_cv', name: 'Cutoff CV', type: 'cv' }
+      { id: 'audio_in', name: 'In', title: 'Áudio In (Sinal a ser filtrado)', type: 'audio' },
+      { id: 'cutoff_cv', name: 'Cutoff CV', title: 'Cutoff / Pitch CV (Modulação de corte ou rastreio de nota)', type: 'cv' }
     ],
     outlets: [
-      { id: 'audio_out', name: 'Áudio Out', type: 'audio' }
+      { id: 'audio_out', name: 'Out', title: 'Áudio Out (Sinal filtrado)', type: 'audio' }
     ]
   },
   envelope: {
@@ -51,10 +52,10 @@ export const NODE_TYPES = {
     badge: 'DINÂMICA',
     defaultParams: { attack: 0.005, decay: 0.25, sustain: 0.2, release: 0.2 },
     inlets: [
-      { id: 'gate_in', name: 'Gate In', type: 'cv' }
+      { id: 'gate_in', name: 'Gate In', title: 'Gate In (Disparo da tecla)', type: 'cv' }
     ],
     outlets: [
-      { id: 'cv_out', name: 'CV Out', type: 'cv' }
+      { id: 'cv_out', name: 'Env Out', title: 'Envelope CV Out', type: 'cv' }
     ]
   },
   lfo: {
@@ -65,7 +66,7 @@ export const NODE_TYPES = {
     defaultParams: { waveform: 'sine', frequency: 5.0, depth: 30 },
     inlets: [],
     outlets: [
-      { id: 'cv_out', name: 'CV Out', type: 'cv' }
+      { id: 'cv_out', name: 'LFO Out', title: 'LFO CV Out', type: 'cv' }
     ]
   },
   vca: {
@@ -75,12 +76,12 @@ export const NODE_TYPES = {
     badge: 'VOLUME / AM',
     defaultParams: { gain: 0.8, depth: 500 },
     inlets: [
-      { id: 'audio_in', name: 'Áudio In', type: 'audio' },
-      { id: 'gain_cv', name: 'Gain CV', type: 'cv' },
-      { id: 'mod_cv', name: 'Mod CV', type: 'cv' }
+      { id: 'audio_in', name: 'In', title: 'Áudio In', type: 'audio' },
+      { id: 'gain_cv', name: 'Gain CV', title: 'Gain CV (Controle de amplitude)', type: 'cv' },
+      { id: 'mod_cv', name: 'Mod CV', title: 'Tremolo / AM CV', type: 'cv' }
     ],
     outlets: [
-      { id: 'audio_out', name: 'Áudio Out', type: 'audio' }
+      { id: 'audio_out', name: 'Out', title: 'Áudio Out', type: 'audio' }
     ]
   },
   mixer: {
@@ -90,13 +91,13 @@ export const NODE_TYPES = {
     badge: 'MIXAGEM',
     defaultParams: { ch1: 0.7, ch2: 0.7, ch3: 0.5, ch4: 0.5 },
     inlets: [
-      { id: 'in_1', name: 'Canal 1', type: 'audio' },
-      { id: 'in_2', name: 'Canal 2', type: 'audio' },
-      { id: 'in_3', name: 'Canal 3', type: 'audio' },
-      { id: 'in_4', name: 'Canal 4', type: 'audio' }
+      { id: 'in_1', name: 'Ch 1', title: 'Canal 1 Áudio', type: 'audio' },
+      { id: 'in_2', name: 'Ch 2', title: 'Canal 2 Áudio', type: 'audio' },
+      { id: 'in_3', name: 'Ch 3', title: 'Canal 3 Áudio', type: 'audio' },
+      { id: 'in_4', name: 'Ch 4', title: 'Canal 4 Áudio', type: 'audio' }
     ],
     outlets: [
-      { id: 'audio_out', name: 'Mix Out', type: 'audio' }
+      { id: 'audio_out', name: 'Out', title: 'Mix Out', type: 'audio' }
     ]
   },
   master: {
@@ -106,7 +107,7 @@ export const NODE_TYPES = {
     badge: 'DESTINO',
     defaultParams: { volume: 0.85 },
     inlets: [
-      { id: 'audio_in', name: 'Áudio In', type: 'audio' }
+      { id: 'audio_in', name: 'In', title: 'Áudio In (Saída final para os alto-falantes)', type: 'audio' }
     ],
     outlets: []
   }
@@ -217,11 +218,12 @@ export class SynthGraphModel {
     return null;
   }
 
-  disconnectCablesAtPort(nodeId, portId) {
-    const toRemove = this.cables.filter(c =>
-      (c.fromNode === nodeId && c.fromPort === portId) ||
-      (c.toNode === nodeId && c.toPort === portId)
-    );
+  disconnectCablesAtPort(nodeId, portId, direction = null) {
+    const toRemove = this.cables.filter(c => {
+      if (direction === 'in') return c.toNode === nodeId && c.toPort === portId;
+      if (direction === 'out') return c.fromNode === nodeId && c.fromPort === portId;
+      return (c.fromNode === nodeId && c.fromPort === portId) || (c.toNode === nodeId && c.toPort === portId);
+    });
     for (const cable of toRemove) {
       this.disconnect(cable.id);
     }

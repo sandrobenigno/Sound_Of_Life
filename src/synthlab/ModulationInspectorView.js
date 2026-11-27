@@ -42,6 +42,7 @@ export class ModulationInspectorView {
           <label for="inspectorModeSelect">Fenômeno Didático:</label>
           <select id="inspectorModeSelect" class="inspector-select">
             <option value="fm">Síntese FM (Modulação em Frequência)</option>
+            <option value="wind_resonance">Síntese de Sopros (Ruído + Filtro Ressonante)</option>
             <option value="filter_env">Filtro Subtrativo + Envelope ADSR</option>
             <option value="lfo">LFO (Vibrato / Tremolo)</option>
             <option value="amp_adsr">Envelope de Amplitude (Curva ADSR)</option>
@@ -117,11 +118,26 @@ export class ModulationInspectorView {
     const infoFunc = this.element.querySelector('#infoFunction');
     const infoAfter = this.element.querySelector('#infoAfter');
 
-    if (this.mode === 'fm') {
+    if (this.mode === 'wind_resonance') {
+      // Curva de ressonância passa-faixa estreita e alta (Q alto de tubo acústico)
+      for (let x = 0; x < w; x++) {
+        const dx = (x - w * 0.48) / 10;
+        const peak = 1 / (1 + dx * dx);
+        const y = (h - 15) - peak * (h - 25);
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+    } else if (this.mode === 'fm') {
       infoBefore.innerHTML = `<span class="info-label">Onda Portadora (Carrier)</span><span class="info-sub">Senoidal f₀ = 220 Hz (A3)</span>`;
       infoFunc.innerHTML = `<span class="info-label math-formula">f(t) = f₀ + I · sin(2π · 3.5f₀ · t)</span><span class="info-sub">Razão Harmônica = 3.5x</span>`;
       infoAfter.innerHTML = `<span class="info-label">Timbre Metálico / Sino</span><span class="info-sub">Novos harmônicos por Bessel</span>`;
       expEl.innerHTML = `<p><strong>💡 Síntese FM:</strong> A oscilação em frequência modula a fase da portadora. Relações fracionárias como 3.5x geram sons inarmônicos metálicos típicos de sinos e pratos!</p>`;
+
+    } else if (this.mode === 'wind_resonance') {
+      infoBefore.innerHTML = `<span class="info-label">Ruído de Ar Turbulento</span><span class="info-sub">Espectro contínuo caótico (todas as frequências)</span>`;
+      infoFunc.innerHTML = `<span class="info-label math-formula">Passa-Faixa f₀ = Pitch (Q = 22)</span><span class="info-sub">Ressonância Acústica da Coluna de Ar</span>`;
+      infoAfter.innerHTML = `<span class="info-label">Timbre de Flauta Melódico</span><span class="info-sub">Harmônico puro extraído do sopro</span>`;
+      expEl.innerHTML = `<p><strong>💡 Síntese Física de Sopros:</strong> O bocal gera turbulência de ar caótica (ruído branco). O tubo ressonante da flauta filtra e amplifica apenas a nota afinada por reflexão acústica, criando melodia cantada!</p>`;
 
     } else if (this.mode === 'filter_env') {
       infoBefore.innerHTML = `<span class="info-label">Dente de Serra Bruta</span><span class="info-sub">Todos os harmônicos (1f, 2f, 3f, 4f...)</span>`;
@@ -182,7 +198,11 @@ export class ModulationInspectorView {
       const phase = (x / w) * (Math.PI * 2 * cycles) + this.activeTime;
       let y = cy;
 
-      if (this.mode === 'filter_env') {
+      if (this.mode === 'wind_resonance') {
+        // Ruído branco caótico (sopro puro)
+        const pseudoRand = Math.sin(x * 12.9898 + this.activeTime * 8) * Math.cos(x * 78.233);
+        y = cy + pseudoRand * 40;
+      } else if (this.mode === 'filter_env') {
         // Dente de serra
         const saw = (phase % (Math.PI * 2)) / (Math.PI * 2);
         y = cy - (saw * 2 - 1) * 45;
@@ -219,7 +239,16 @@ export class ModulationInspectorView {
     ctx.shadowColor = '#ffb703';
     ctx.shadowBlur = 8;
 
-    if (this.mode === 'fm') {
+    if (this.mode === 'wind_resonance') {
+      // Curva de ressonância passa-faixa estreita e alta (Q alto de tubo acústico)
+      for (let x = 0; x < w; x++) {
+        const dx = (x - w * 0.48) / 10;
+        const peak = 1 / (1 + dx * dx);
+        const y = (h - 15) - peak * (h - 25);
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+    } else if (this.mode === 'fm') {
       // Moduladora rápida 3.5x
       const cycles = 3 * 3.5;
       for (let x = 0; x < w; x++) {
@@ -306,7 +335,12 @@ export class ModulationInspectorView {
         const phase = (x / w) * (Math.PI * 2 * cycles) + this.activeTime;
         let y = cy;
 
-        if (this.mode === 'fm') {
+        if (this.mode === 'wind_resonance') {
+          // Senoide afinada extraída do ruído com suave ar de sopro
+          const breath = (Math.sin(x * 12.9898 + this.activeTime * 15) * Math.cos(x * 78.233)) * 4;
+          y = cy + Math.sin(phase) * 42 + breath;
+
+        } else if (this.mode === 'fm') {
           // Equação de Chowning: sin(wc*t + I * sin(wm*t))
           const modPhase = phase * 3.5;
           const fmIndex = 1.8;

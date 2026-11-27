@@ -97,7 +97,8 @@ export class SynthAudioBridge {
           main: oscGain,
           source: osc,
           freqParam: osc.frequency,
-          detuneParam: osc.detune
+          detuneParam: osc.detune,
+          targetFreq: targetFreq
         });
 
         osc.start(now);
@@ -135,7 +136,15 @@ export class SynthAudioBridge {
         const filter = this.ctx.createBiquadFilter();
         filter.type = p.filterType || 'lowpass';
 
-        const baseCutoff = Math.max(20, Math.min(20000, p.cutoff || 1800));
+        const keyTrackMult = parseFloat(p.keyTrack) || 0;
+        let baseCutoff;
+        if (keyTrackMult > 0) {
+          // Rastreia a nota musical tocada no teclado/loop (fundamental para física de sopro)
+          baseCutoff = Math.max(20, Math.min(18000, baseFreq * keyTrackMult * ((p.cutoff || 440) / 440)));
+        } else {
+          baseCutoff = Math.max(20, Math.min(20000, p.cutoff || 1800));
+        }
+
         filter.frequency.setValueAtTime(baseCutoff, now);
         filter.Q.setValueAtTime(p.resonance || 3.0, now);
 
@@ -246,7 +255,7 @@ export class SynthAudioBridge {
         continue;
       }
 
-      // Caso E: Envelope ADSR modulando Cutoff do Filtro
+      // Caso E1: Envelope ADSR modulando Cutoff do Filtro
       if (srcInst.isEnvelope && dstInst.cutoffParam && cable.toPort === 'cutoff_cv') {
         const base = dstInst.baseCutoff || 1000;
         const amount = (dstInst.envAmount || 3000) * vel;
@@ -262,6 +271,28 @@ export class SynthAudioBridge {
           Math.max(30, base * 0.8),
           now + durSec + srcInst.release
         );
+        continue;
+      }
+
+      // Caso E2: Oscilador fornecendo Pitch/Frequência Dinâmica ou Modulação ao Filtro (Cutoff CV)
+      if (srcInst.targetFreq && dstInst.cutoffParam && cable.toPort === 'cutoff_cv') {
+        // Define a frequência central do filtro exatamente para a nota do oscilador
+        dstInst.cutoffParam.setValueAtTime(srcInst.targetFreq, now);
+
+        // Se o cabo veio da saída de áudio (audio_out), conecta também modulação em taxa de áudio (Filter Audio FM)
+        if (cable.fromPort === 'audio_out' && srcInst.main) {
+          const fmDepth = this.ctx.createGain();
+          fmDepth.gain.setValueAtTime(srcInst.targetFreq * 0.45, now);
+          srcInst.main.connect(fmDepth);
+          fmDepth.connect(dstInst.cutoffParam);
+          cleanupNodes.push(fmDepth);
+        }
+        continue;
+      }
+
+      // Caso E3: LFO modulando Cutoff do Filtro (Sweeping / Wah-wah)
+      if (srcInst.main && dstInst.cutoffParam && cable.toPort === 'cutoff_cv') {
+        srcInst.main.connect(dstInst.cutoffParam);
         continue;
       }
 

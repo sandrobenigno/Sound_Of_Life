@@ -147,6 +147,7 @@ function _loadLessonPreset(lesson, model, inspectorView) {
   else if (lesson.id === 'lesson_fm_bell') inspectorView.setMode('fm');
   else if (lesson.id === 'lesson_lfo_mod') inspectorView.setMode('lfo');
   else if (lesson.id === 'lesson_percussion') inspectorView.setMode('amp_adsr');
+  else if (lesson.id === 'lesson_wind_resonator') inspectorView.setMode('wind_resonance');
 }
 
 function _setupBottomPiano(container, bridge) {

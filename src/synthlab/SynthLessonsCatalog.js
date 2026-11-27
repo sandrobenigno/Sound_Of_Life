@@ -135,5 +135,28 @@ export const SYNTH_LESSONS = [
         { fromNode: 'vca_1', fromPort: 'audio_out', toNode: 'master_1', toPort: 'audio_in' }
       ]
     }
+  },
+  {
+    id: 'lesson_wind_resonator',
+    title: '6. Síntese de Sopro (Flauta): Ruído + Filtro Ressonante',
+    subtitle: 'Ruído Branco excitando um Filtro Passa-Faixa afinado no tom da nota',
+    description: 'A física acústica dos instrumentos de sopro (flauta, pan flute, apito). O ruído caótico do ar turbulento passa por uma coluna ressonante estreita que extrai notas musicais puras por afinação acústica.',
+    patch: {
+      name: 'Resonant Wind Flute',
+      category: 'Wind',
+      nodes: [
+        { id: 'noise_1', type: 'noise', x: 80, y: 140, params: { noiseType: 'white', gain: 0.95 } },
+        { id: 'filter_1', type: 'filter', x: 360, y: 140, params: { filterType: 'bandpass', cutoff: 440, resonance: 22.0, keyTrack: 1 } },
+        { id: 'env_1', type: 'envelope', x: 80, y: 360, params: { attack: 0.05, decay: 0.35, sustain: 0.75, release: 0.25 } },
+        { id: 'vca_1', type: 'vca', x: 650, y: 140, params: { gain: 0.9 } },
+        { id: 'master_1', type: 'master', x: 920, y: 140, params: { volume: 0.85 } }
+      ],
+      cables: [
+        { fromNode: 'noise_1', fromPort: 'audio_out', toNode: 'filter_1', toPort: 'audio_in' },
+        { fromNode: 'env_1', fromPort: 'cv_out', toNode: 'vca_1', toPort: 'gain_cv' },
+        { fromNode: 'filter_1', fromPort: 'audio_out', toNode: 'vca_1', toPort: 'audio_in' },
+        { fromNode: 'vca_1', fromPort: 'audio_out', toNode: 'master_1', toPort: 'audio_in' }
+      ]
+    }
   }
 ];

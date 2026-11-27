@@ -258,8 +258,8 @@ body.synth-body {
 /* Cards dos Nós Modulares */
 .synth-node-card {
   position: absolute;
-  width: 240px;
-  background: rgba(9, 21, 38, 0.92);
+  width: 310px;
+  background: rgba(9, 21, 38, 0.94);
   backdrop-filter: blur(8px);
   border: 1px solid var(--node-accent, var(--border-dim));
   border-radius: 7px;
@@ -267,6 +267,11 @@ body.synth-body {
   font-family: var(--font-mono);
   overflow: visible;
   transition: box-shadow 0.15s ease;
+}
+
+.synth-node-card.type-filter,
+.synth-node-card.type-oscillator {
+  width: 330px;
 }
 
 .synth-node-card:hover {
@@ -326,24 +331,37 @@ body.synth-body {
 
 .node-body {
   display: flex;
-  padding: 8px 6px;
+  align-items: center;
+  padding: 8px 8px;
   position: relative;
-  gap: 4px;
+  gap: 8px;
+  box-sizing: border-box;
 }
 
-.node-inlets-col, .node-outlets-col {
+.node-inlets-col {
   display: flex;
   flex-direction: column;
   gap: 12px;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+.node-outlets-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  flex-shrink: 0;
+  align-items: flex-end;
 }
 
 .node-controls-col {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 0 4px;
+  padding: 0 2px;
 }
 
 /* Sockets e Pinos */
@@ -354,10 +372,15 @@ body.synth-body {
   position: relative;
 }
 
+.socket-outlet {
+  justify-content: flex-end;
+}
+
 .socket-label {
-  font-size: 8px;
+  font-size: 8.5px;
   color: var(--text-dim);
   white-space: nowrap;
+  letter-spacing: 0.2px;
 }
 
 .socket-pin {
@@ -430,9 +453,14 @@ body.synth-body {
   color: var(--text-main);
   font-family: var(--font-mono);
   font-size: 10px;
-  padding: 2px 4px;
+  padding: 3px 6px;
   border-radius: 3px;
   outline: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .ctrl-slider {
