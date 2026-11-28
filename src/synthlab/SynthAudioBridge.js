@@ -172,10 +172,19 @@ export class SynthAudioBridge {
 
         lfoOsc.type = p.waveform || 'sine';
         lfoOsc.frequency.setValueAtTime(p.frequency || 5.0, now);
-        lfoDepth.gain.setValueAtTime(p.depth || 30, now);
 
+        const rawDepth = p.depth !== undefined ? p.depth : 50;
+        const depthNorm = rawDepth > 1 ? rawDepth / 100 : rawDepth; // Normalizado 0.0 a 1.0
+
+        lfoDepth.gain.setValueAtTime(depthNorm, now);
         lfoOsc.connect(lfoDepth);
-        voiceInstances.set(id, { main: lfoDepth, source: lfoOsc });
+
+        voiceInstances.set(id, {
+          isLFO: true,
+          main: lfoDepth,
+          source: lfoOsc,
+          depthNorm: depthNorm
+        });
 
         lfoOsc.start(now);
         cleanupNodes.push(lfoOsc, lfoDepth);
@@ -249,7 +258,16 @@ export class SynthAudioBridge {
         continue;
       }
 
-      // Caso D: Modulação de Pitch CV (LFO -> Oscilador)
+      // Caso D: Modulação de Pitch CV (LFO -> Oscilador = Vibrato)
+      if (srcInst.isLFO && dstInst.detuneParam && cable.toPort === 'pitch_cv') {
+        const vibratoScale = this.ctx.createGain();
+        // 100% intensidade = +/- 150 cents (1.5 semitons); 30% = +/- 45 cents (vibrato clássico expressivo)
+        vibratoScale.gain.setValueAtTime(srcInst.depthNorm * 150, now);
+        srcInst.source.connect(vibratoScale);
+        vibratoScale.connect(dstInst.detuneParam);
+        cleanupNodes.push(vibratoScale);
+        continue;
+      }
       if (srcInst.main && dstInst.detuneParam && cable.toPort === 'pitch_cv') {
         srcInst.main.connect(dstInst.detuneParam);
         continue;
@@ -291,6 +309,15 @@ export class SynthAudioBridge {
       }
 
       // Caso E3: LFO modulando Cutoff do Filtro (Sweeping / Wah-wah)
+      if (srcInst.isLFO && dstInst.cutoffParam && cable.toPort === 'cutoff_cv') {
+        const filterScale = this.ctx.createGain();
+        // 100% intensidade = +/- 3000 Hz de varredura; 30% = +/- 900 Hz
+        filterScale.gain.setValueAtTime(srcInst.depthNorm * 3000, now);
+        srcInst.source.connect(filterScale);
+        filterScale.connect(dstInst.cutoffParam);
+        cleanupNodes.push(filterScale);
+        continue;
+      }
       if (srcInst.main && dstInst.cutoffParam && cable.toPort === 'cutoff_cv') {
         srcInst.main.connect(dstInst.cutoffParam);
         continue;
@@ -313,6 +340,15 @@ export class SynthAudioBridge {
       }
 
       // Caso G: LFO modulando VCA (Tremolo / Mod CV)
+      if (srcInst.isLFO && dstInst.gainParam && cable.toPort === 'mod_cv') {
+        const tremoloScale = this.ctx.createGain();
+        // 100% intensidade = +/- 0.5 de modulação de amplitude
+        tremoloScale.gain.setValueAtTime(srcInst.depthNorm * 0.5, now);
+        srcInst.source.connect(tremoloScale);
+        tremoloScale.connect(dstInst.gainParam);
+        cleanupNodes.push(tremoloScale);
+        continue;
+      }
       if (srcInst.main && dstInst.gainParam && cable.toPort === 'mod_cv') {
         srcInst.main.connect(dstInst.gainParam);
         continue;

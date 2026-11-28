@@ -95,7 +95,7 @@ export const SYNTH_LESSONS = [
       nodes: [
         { id: 'lfo_1', type: 'lfo', x: 80, y: 120, params: { waveform: 'sine', frequency: 5.5, depth: 25 } },
         { id: 'osc_1', type: 'oscillator', x: 360, y: 120, params: { waveform: 'sawtooth', octave: 0, detune: 0, gain: 0.85 } },
-        { id: 'lfo_tremolo', type: 'lfo', x: 80, y: 340, params: { waveform: 'triangle', frequency: 3.2, depth: 0.4 } },
+        { id: 'lfo_tremolo', type: 'lfo', x: 80, y: 340, params: { waveform: 'triangle', frequency: 3.2, depth: 40 } },
         { id: 'vca_1', type: 'vca', x: 620, y: 120, params: { gain: 0.75 } },
         { id: 'env_1', type: 'envelope', x: 360, y: 340, params: { attack: 0.05, decay: 0.3, sustain: 0.7, release: 0.4 } },
         { id: 'master_1', type: 'master', x: 880, y: 120, params: { volume: 0.85 } }

@@ -463,6 +463,7 @@ export class SynthCanvasView {
       `;
 
     } else if (node.type === 'lfo') {
+      const depthVal = p.depth !== undefined ? (p.depth > 1 ? p.depth : Math.round(p.depth * 100)) : 50;
       html += `
         <div class="control-row">
           <label>Onda:</label>
@@ -473,8 +474,12 @@ export class SynthCanvasView {
           </select>
         </div>
         <div class="control-row">
-          <div class="label-with-val"><span>Velocidade:</span><span class="val-text">${p.frequency} Hz</span></div>
-          <input type="range" min="0.1" max="25" step="0.1" value="${p.frequency}" data-param="frequency" class="ctrl-slider">
+          <div class="label-with-val"><span>Velocidade:</span><span class="val-text">${Number(p.frequency || 5.0).toFixed(1)} Hz</span></div>
+          <input type="range" min="0.1" max="25" step="0.1" value="${p.frequency || 5.0}" data-param="frequency" class="ctrl-slider">
+        </div>
+        <div class="control-row">
+          <div class="label-with-val"><span>Intensidade:</span><span class="val-text">${Math.round(depthVal)}%</span></div>
+          <input type="range" min="0" max="100" step="1" value="${depthVal}" data-param="depth" class="ctrl-slider" title="Profundidade da modulação (0% a 100%)">
         </div>
       `;
 
@@ -560,8 +565,10 @@ export class SynthCanvasView {
         const valText = e.target.closest('.control-row')?.querySelector('.val-text') ||
                         e.target.closest('.adsr-col')?.querySelector('.adsr-val');
         if (valText) {
-          if (param === 'cutoff') valText.textContent = `${val} Hz`;
+          if (param === 'cutoff') valText.textContent = `${Math.round(val)} Hz`;
           else if (param === 'resonance') valText.textContent = `${val}`;
+          else if (param === 'frequency') valText.textContent = `${val.toFixed(1)} Hz`;
+          else if (param === 'depth') valText.textContent = `${Math.round(val)}%`;
           else if (param === 'gain' || param === 'volume') valText.textContent = `${Math.round(val * 100)}%`;
           else if (['attack', 'decay', 'release'].includes(param)) valText.textContent = `${Math.round(val * 1000)}ms`;
           else if (param === 'sustain') valText.textContent = `${Math.round(val * 100)}%`;
